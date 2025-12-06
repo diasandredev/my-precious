@@ -4,38 +4,61 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    /* Black */
-    --foreground: 0 0% 100%;
-    /* White */
+    /* 
+      Palette v2:
+      #2B2D42 (Dark Blue/Black) -> 235 21% 21%
+      #8D99AE (Cool Grey) -> 218 17% 62%
+      #EDF2F4 (Off White) -> 210 29% 94%
+      #EF233C (Red) -> 348 86% 54%
+      #D90429 (Dark Red) -> 350 95% 43%
+    */
 
-    --card: 240 10% 3.9%;
-    /* Zinc 950 */
-    --card-foreground: 0 0% 98%;
+    --background: 235 21% 21%;
+    /* #2B2D42 */
+    --foreground: 210 29% 94%;
+    /* #EDF2F4 */
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --card: 235 21% 18%;
+    /* Slightly darker than bg for contrast, or use #8D99AE for light cards? Sticking to dark theme: Darker version of #2B2D42 */
+    --card-foreground: 210 29% 94%;
+    /* #EDF2F4 */
 
-    --primary: 45 93% 47%;
-    /* Amber 500/400 Gold-ish */
-    --primary-foreground: 240 5.9% 10%;
+    --popover: 235 21% 21%;
+    /* #2B2D42 */
+    --popover-foreground: 210 29% 94%;
+    /* #EDF2F4 */
 
-    --secondary: 240 3.7% 15.9%;
-    /* Zinc 800 */
-    --secondary-foreground: 0 0% 98%;
+    --primary: 348 86% 54%;
+    /* #EF233C */
+    --primary-foreground: 210 29% 94%;
+    /* #EDF2F4 */
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --secondary: 218 17% 62%;
+    /* #8D99AE */
+    --secondary-foreground: 235 21% 21%;
+    /* #2B2D42 */
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --muted: 235 21% 15%;
+    /* Darker background */
+    --muted-foreground: 218 17% 62%;
+    /* #8D99AE */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: 218 17% 62%;
+    /* #8D99AE */
+    --accent-foreground: 235 21% 21%;
+    /* #2B2D42 */
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --destructive: 350 95% 43%;
+    /* #D90429 */
+    --destructive-foreground: 210 29% 94%;
+    /* #EDF2F4 */
+
+    --border: 218 17% 62%;
+    /* #8D99AE */
+    --input: 218 17% 62%;
+    /* #8D99AE */
+    --ring: 348 86% 54%;
+    /* #EF233C */
 
     --radius: 0.5rem;
   }

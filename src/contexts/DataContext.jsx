@@ -27,7 +27,11 @@ export function DataProvider({ children }) {
     const addAccount = (account) => {
         setData(prev => ({
             ...prev,
-            accounts: [...prev.accounts, { ...account, id: uuidv4(), createdAt: new Date().toISOString() }]
+            accounts: [...prev.accounts, {
+                ...account,
+                id: account.id || uuidv4(),
+                createdAt: account.createdAt || new Date().toISOString()
+            }]
         }));
     };
 
@@ -60,7 +64,7 @@ export function DataProvider({ children }) {
             // Add new
             return {
                 ...prev,
-                snapshots: [...prev.snapshots, { ...snapshot, id: uuidv4() }]
+                snapshots: [...prev.snapshots, { ...snapshot, id: snapshot.id || uuidv4() }]
             };
         });
     };

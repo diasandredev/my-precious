@@ -6,6 +6,7 @@ import { AccountsTab } from './components/features/AccountsTab';
 import { BalancesTab } from './components/features/BalancesTab';
 import { CalendarTab } from './components/features/CalendarTab';
 import { DashboardTab } from './components/features/DashboardTab';
+import { LoadExampleData } from './components/LoadExampleData';
 import { cn } from './lib/utils';
 
 function App() {
@@ -104,6 +105,7 @@ function App() {
           icon={<CalendarIcon size={20} />}
         />
       </nav>
+      <LoadExampleData />
     </div>
   );
 }
