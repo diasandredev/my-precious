@@ -1,20 +1,32 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, getDate, startOfWeek, endOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Settings, Calendar as CalendarIcon, DollarSign } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Settings, Calendar as CalendarIcon, DollarSign, Repeat, ArrowRightLeft } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { Button, Input, Label, Modal, Card } from '../ui';
 import { cn } from '../../lib/utils';
+import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 
 export function CalendarTab() {
-    const { data, addFixedExpense, deleteFixedExpense } = useData();
+    const { data, addFixedItem, deleteFixedItem, addTransaction, deleteTransaction, updateFixedItem, updateTransaction } = useData();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Modal State
+    const [isEditing, setIsEditing] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false); // New state for confirmation context
+    const [editingId, setEditingId] = useState(null); // ID of transaction or fixed item being edited
+    const [itemType, setItemType] = useState('one-time'); // 'one-time' | 'recurring'
     const [formData, setFormData] = useState({
-        name: '',
+        title: '',
         amount: '',
-        dayDue: '1',
-        frequency: 'Monthly'
+        date: new Date().toISOString().split('T')[0], // For one-time
+        startDate: new Date().toISOString().split('T')[0], // For recurring
+        endDate: '', // Optional end date
+        frequency: 'MONTHLY', // 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'
+        type: 'EXPENSE', // 'INCOME', 'EXPENSE'
+
+        isVariable: false,
+        fixedItemId: null // To link transaction to fixed item
     });
 
     const monthStart = startOfMonth(currentMonth);
@@ -27,36 +39,134 @@ export function CalendarTab() {
         end: endDate
     });
 
+    // Calculate financials for the view
+    const monthlyFinancials = useMemo(() => {
+        return getFinancialsForMonth(currentMonth, data.fixedItems, data.transactions, data.fixedExpenses);
+    }, [currentMonth, data.fixedItems, data.transactions, data.fixedExpenses]);
+
     const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
     const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
+    const handleConfirmItem = (item) => {
+        // If it's a projected item, we want to convert it to a transaction
+        setFormData({
+            title: item.name,
+            amount: item.amount,
+            date: format(item.date, 'yyyy-MM-dd'),
+            startDate: format(item.date, 'yyyy-MM-dd'),
+            endDate: '',
+            frequency: 'MONTHLY',
+            type: item.type,
+            isVariable: false, // Once confirmed, it's a fixed amount transaction
+            fixedItemId: item.fixedItemId // Capture the ID for deduplication
+        });
+        setItemType('one-time'); // We are creating a transaction instance
+        setIsEditing(false); // We are "adding" a new transaction based on projection
+        setIsConfirming(true); // We are confirming a projection
+        setIsModalOpen(true);
+    };
+
+    const handleEditItem = (item) => {
+        // Populate form with item data
+        setFormData({
+            title: item.name,
+            amount: item.amount,
+            date: format(new Date(item.date), 'yyyy-MM-dd'), // Handle legacy/string dates
+            startDate: item.originalItem?.startDate || format(new Date(item.date), 'yyyy-MM-dd'),
+            frequency: item.originalItem?.frequency || 'MONTHLY',
+            type: item.type,
+            isVariable: item.isVariable || false
+        });
+
+        if (item.fixedItemId || item.status === 'PROJECTED') {
+            // It's a recurring item instance
+            setItemType('recurring');
+            setEditingId(item.fixedItemId || item.originalItem?.id);
+        } else {
+            // It's a one-time transaction
+            setItemType('one-time');
+            setEditingId(item.id);
+        }
+
+        setIsEditing(true);
+        setIsConfirming(false);
+        setIsModalOpen(true);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        addFixedExpense({
-            name: formData.name,
-            amount: parseFloat(formData.amount),
-            dayDue: parseInt(formData.dayDue),
-            frequency: formData.frequency
-        });
+
+        const amount = parseFloat(formData.amount);
+
+        if (isEditing) {
+            if (itemType === 'recurring') {
+                if (editingId && !editingId.toString().startsWith('legacy')) {
+                    updateFixedItem(editingId, {
+                        title: formData.title,
+                        amount: formData.isVariable ? 0 : amount,
+                        type: formData.type,
+                        frequency: formData.frequency,
+                        startDate: formData.startDate,
+                        endDate: formData.endDate,
+                        isVariable: formData.isVariable
+                    });
+                }
+            } else {
+                if (updateTransaction) {
+                    updateTransaction(editingId, {
+                        title: formData.title,
+                        amount: amount,
+                        type: formData.type,
+                        date: formData.date,
+                        isPaid: true
+                    });
+                }
+            }
+        } else {
+            // Creating new
+            if (itemType === 'recurring') {
+                addFixedItem({
+                    title: formData.title,
+                    amount: formData.isVariable ? 0 : amount,
+                    type: formData.type,
+                    frequency: formData.frequency,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    isVariable: formData.isVariable
+                });
+            } else {
+                addTransaction({
+                    title: formData.title,
+                    amount: amount,
+                    type: formData.type,
+                    date: formData.date,
+                    isPaid: true,
+                    fixedItemId: formData.fixedItemId // Pass the link
+                });
+            }
+        }
+
+
         setIsModalOpen(false);
-        setFormData({ name: '', amount: '', dayDue: '1', frequency: 'Monthly' });
+        resetForm();
     };
 
-    const getExpensesForDay = (day) => {
-        const dayNum = getDate(day);
-        // Only show expenses for days in the current month to avoid confusion, 
-        // or show them if they match the day number? 
-        // Fixed expenses are usually "Day X of every month".
-        // So we should check if the day is in the currently viewed month, 
-        // OR just match the day number if we assume it applies to all displayed days.
-        // But typically fixed expenses are monthly.
-        // Let's only show for days within the current month view to keep it clean,
-        // or if it's the padding days, show for that month?
-        // Simpler: Match day number.
-        return data.fixedExpenses.filter(expense => expense.dayDue === dayNum);
+
+
+    const getItemsForDay = (day) => {
+        return monthlyFinancials.filter(item => isSameDay(item.date, day));
     };
 
-    const totalFixedExpenses = data.fixedExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    // Calculate totals
+    const totalIncome = monthlyFinancials
+        .filter(i => i.type === 'INCOME')
+        .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+    const totalExpense = monthlyFinancials
+        .filter(i => i.type === 'EXPENSE')
+        .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+    const balance = totalIncome - totalExpense;
 
     return (
         <div className="space-y-8 pb-8">
@@ -77,10 +187,18 @@ export function CalendarTab() {
                     </div>
                 </div>
 
-                <Button onClick={() => setIsModalOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
-                    <Plus size={18} />
-                    <span>New Expense</span>
-                </Button>
+                <div className="flex items-center gap-4">
+                    <div className="text-right hidden md:block">
+                        <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Balance</div>
+                        <div className={cn("text-xl font-bold font-mono", balance >= 0 ? "text-green-500" : "text-red-500")}>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(balance)}
+                        </div>
+                    </div>
+                    <Button onClick={() => setIsModalOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
+                        <Plus size={18} />
+                        <span>Add Item</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Grid Calendar View */}
@@ -94,9 +212,13 @@ export function CalendarTab() {
                 </div>
                 <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
                     {calendarDays.map((day, dayIdx) => {
-                        const expenses = getExpensesForDay(day);
+                        const items = getItemsForDay(day);
                         const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
                         const isCurrentDay = isToday(day);
+
+                        const dayBalance = items.reduce((acc, curr) => {
+                            return acc + (curr.type === 'INCOME' ? curr.amount : -curr.amount);
+                        }, 0);
 
                         return (
                             <div
@@ -107,7 +229,12 @@ export function CalendarTab() {
                                     isCurrentMonth && "hover:bg-[#35374C]"
                                 )}
                                 onClick={() => {
-                                    setFormData(prev => ({ ...prev, dayDue: getDate(day).toString() }));
+                                    resetForm(); // Reset previous state first
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        date: format(day, 'yyyy-MM-dd'),
+                                        startDate: format(day, 'yyyy-MM-dd')
+                                    }));
                                     setIsModalOpen(true);
                                 }}
                             >
@@ -119,138 +246,295 @@ export function CalendarTab() {
                                     )}>
                                         {format(day, 'd')}
                                     </span>
-                                    {expenses.length > 0 && (
-                                        <span className="text-[10px] font-bold text-muted-foreground">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expenses.reduce((a, b) => a + b.amount, 0))}
+                                    {items.length > 0 && (
+                                        <span className={cn(
+                                            "text-[10px] font-bold",
+                                            dayBalance >= 0 ? "text-green-500" : "text-red-400"
+                                        )}>
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dayBalance)}
                                         </span>
                                     )}
                                 </div>
 
                                 <div className="flex-1 flex flex-col gap-1 mt-1 overflow-y-auto custom-scrollbar max-h-[80px]">
-                                    {expenses.map(expense => (
+                                    {items.map(item => (
                                         <div
-                                            key={expense.id}
-                                            className="text-xs p-1.5 rounded bg-card border border-border/50 truncate group/item hover:border-primary/50 transition-colors flex items-center justify-between"
-                                            title={`${expense.name} - R$ ${expense.amount}`}
-                                            onClick={(e) => e.stopPropagation()}
+                                            key={item.id}
+                                            className={cn(
+                                                "text-xs p-1.5 rounded border truncate group/item transition-all duration-200 flex items-center justify-between cursor-pointer",
+                                                "hover:scale-[1.02] hover:shadow-sm hover:brightness-105",
+                                                item.type === 'INCOME'
+                                                    ? "bg-green-500/10 border-green-500/20 text-green-500"
+                                                    : "bg-red-500/10 border-red-500/20 text-red-500",
+                                                item.status === 'PROJECTED' && "opacity-70 border-dashed"
+                                            )}
+                                            title={`${item.name} - R$ ${item.amount}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (item.status === 'PROJECTED') {
+                                                    handleConfirmItem(item);
+                                                } else {
+                                                    handleEditItem(item);
+                                                }
+                                            }}
                                         >
-                                            <span className="truncate flex-1">{expense.name}</span>
+                                            <span className="truncate flex-1 font-medium">
+                                                {item.isVariable && item.status === 'PROJECTED' ? '~' : ''}{item.name}
+                                            </span>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); deleteFixedExpense(expense.id); }}
-                                                className="opacity-0 group-hover/item:opacity-100 text-destructive hover:bg-destructive/10 p-0.5 rounded ml-1"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (item.fixedItemId) deleteFixedItem(item.fixedItemId);
+                                                    else deleteTransaction(item.id);
+                                                }}
+                                                className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded ml-1 hover:bg-black/20"
                                             >
                                                 <Trash2 size={10} />
                                             </button>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                                    <Plus className="text-muted-foreground/50 w-8 h-8" />
-                                </div>
+
                             </div>
                         );
                     })}
                 </div>
             </Card>
 
-            {/* Fixed Expenses List Section */}
-            < div className="space-y-4" >
+            {/* Financial Summary Table */}
+            <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-                        <DollarSign className="text-primary" />
-                        Fixed Expenses List
+                        <ArrowRightLeft className="text-primary" />
+                        Month Summary
                     </h3>
-                    <div className="text-sm text-muted-foreground bg-card px-3 py-1 rounded-full border">
-                        Total Monthly: <span className="text-foreground font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalFixedExpenses)}</span>
+                </div>
+
+                <Card className="overflow-hidden border-border/50">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-muted/50 text-muted-foreground">
+                                <tr>
+                                    <th className="px-4 py-3 text-left font-medium">Date</th>
+                                    <th className="px-4 py-3 text-left font-medium">Description</th>
+                                    <th className="px-4 py-3 text-left font-medium">Type</th>
+                                    <th className="px-4 py-3 text-right font-medium">In</th>
+                                    <th className="px-4 py-3 text-right font-medium">Out</th>
+                                    <th className="px-4 py-3 text-center font-medium">Status</th>
+                                    <th className="px-4 py-3 text-center font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/50">
+                                {monthlyFinancials.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                                            No financial activity this month.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    monthlyFinancials.map(item => (
+                                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                                            <td className="px-4 py-3 font-mono text-muted-foreground">
+                                                {format(item.date, 'dd/MM')}
+                                            </td>
+                                            <td className="px-4 py-3 font-medium text-foreground">
+                                                {item.name}
+                                                {item.isVariable && <span className="ml-2 text-[10px] bg-blue-500/10 text-blue-500 px-1 py-0.5 rounded">VAR</span>}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={cn(
+                                                    "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                                                    item.type === 'INCOME' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                                                )}>
+                                                    {item.type}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono text-green-500/90">
+                                                {item.type === 'INCOME' && new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono text-red-500/90">
+                                                {item.type === 'EXPENSE' && new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={cn(
+                                                    "text-[10px] uppercase font-bold",
+                                                    item.status === 'PAID' ? "text-green-500" : "text-amber-500"
+                                                )}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {item.status === 'PROJECTED' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 text-[10px] px-2 bg-primary/10 hover:bg-primary/20 text-primary"
+                                                        onClick={() => handleConfirmItem(item)}
+                                                    >
+                                                        Confirm
+                                                    </Button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                            <tfoot className="bg-muted/50 font-bold">
+                                <tr>
+                                    <td colSpan={3} className="px-4 py-3 text-right">Totals</td>
+                                    <td className="px-4 py-3 text-right text-green-500">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}
+                                    </td>
+                                    <td className="px-4 py-3 text-right text-red-500">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpense)}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(balance)}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {data.fixedExpenses.sort((a, b) => a.dayDue - b.dayDue).map(expense => (
-                        <Card key={expense.id} className="p-4 flex items-center justify-between group hover:border-primary/50 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                    {expense.dayDue}
-                                </div>
-                                <div>
-                                    <div className="font-semibold text-foreground">{expense.name}</div>
-                                    <div className="text-sm text-muted-foreground">{expense.frequency}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="font-mono font-medium text-foreground">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.amount)}
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => deleteFixedExpense(expense.id)}
-                                    className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
-                                >
-                                    <Trash2 size={16} />
-                                </Button>
-                            </div>
-                        </Card>
-                    ))}
-
-                    {data.fixedExpenses.length === 0 && (
-                        <div className="col-span-full py-8 text-center text-muted-foreground border border-dashed border-border rounded-xl bg-card/50">
-                            No fixed expenses registered. Click "New Expense" to add one.
-                        </div>
-                    )}
-                </div>
-            </div >
+                </Card>
+            </div>
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Add Fixed Expense"
+                title={isConfirming ? `Confirm ${formData.title || 'Item'}` : (isEditing ? "Edit Financial Item" : "Add Financial Item")}
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Type Selector - Hide when confirming */}
+                    {!isConfirming && (
+                        <div className="grid grid-cols-2 gap-2 bg-muted p-1 rounded-lg mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setItemType('one-time')}
+                                className={cn(
+                                    "py-2 text-sm font-medium rounded-md transition-all",
+                                    itemType === 'one-time' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                One-time
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setItemType('recurring')}
+                                className={cn(
+                                    "py-2 text-sm font-medium rounded-md transition-all",
+                                    itemType === 'recurring' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Recurring
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label>Transaction Type</Label>
+                            <select
+                                className="w-full flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                value={formData.type}
+                                onChange={e => setFormData({ ...formData, type: e.target.value })}
+                            >
+                                <option value="EXPENSE">Expense</option>
+                                <option value="INCOME">Income</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Amount (R$)</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={formData.amount}
+                                onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                                placeholder="0.00"
+                                disabled={itemType === 'recurring' && formData.isVariable}
+                                required={!(itemType === 'recurring' && formData.isVariable)}
+                            />
+                        </div>
+                    </div>
+
                     <div>
-                        <Label>Expense Name</Label>
+                        <Label>Name / Description</Label>
                         <Input
-                            value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="e.g. Rent, Netflix"
+                            value={formData.title}
+                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                            placeholder="e.g. Grocery, Salary, Rent"
                             required
                         />
                     </div>
 
-                    <div>
-                        <Label>Amount (R$)</Label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            value={formData.amount}
-                            onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                            placeholder="0.00"
-                            required
-                        />
-                    </div>
+                    {itemType === 'one-time' ? (
+                        <div>
+                            <Label>Date</Label>
+                            <Input
+                                type="date"
+                                value={formData.date}
+                                onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                required
+                            />
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Frequency</Label>
+                                    <select
+                                        className="w-full flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                        value={formData.frequency}
+                                        onChange={e => setFormData({ ...formData, frequency: e.target.value })}
+                                    >
+                                        <option value="WEEKLY">Weekly</option>
+                                        <option value="BIWEEKLY">Bi-weekly (14 days)</option>
+                                        <option value="MONTHLY">Monthly</option>
+                                        <option value="YEARLY">Yearly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <Label>Start Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.startDate}
+                                        onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <Label>End Date (Optional)</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.endDate}
+                                        onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                            </div>
 
-                    <div>
-                        <Label>Day of Month Due</Label>
-                        <Input
-                            type="number"
-                            min="1"
-                            max="31"
-                            value={formData.dayDue}
-                            onChange={e => setFormData({ ...formData, dayDue: e.target.value })}
-                            required
-                        />
-                    </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isVariable"
+                                    checked={formData.isVariable}
+                                    onChange={e => setFormData({ ...formData, isVariable: e.target.checked })}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="isVariable" className="mb-0">Variable Price? (Confirm amount monthly)</Label>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex justify-end gap-3 mt-6">
                         <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
                             Cancel
                         </Button>
                         <Button type="submit">
-                            Add Expense
+                            {isConfirming ? 'Confirm & Save' : (itemType === 'one-time' ? 'Add Transaction' : 'Create Recurring Item')}
                         </Button>
                     </div>
                 </form>
             </Modal>
-        </div >
+        </div>
     );
 }

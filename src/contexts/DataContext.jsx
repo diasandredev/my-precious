@@ -14,7 +14,14 @@ const initialData = {
 export function DataProvider({ children }) {
     const [data, setData] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
-        return saved ? JSON.parse(saved) : initialData;
+        const parsed = saved ? JSON.parse(saved) : initialData;
+        // Migration/Initialization for new fields
+        return {
+            ...initialData,
+            ...parsed,
+            fixedItems: parsed.fixedItems || [], // Replaces fixedExpenses eventually
+            transactions: parsed.transactions || [],
+        };
     });
 
     useEffect(() => {
@@ -50,18 +57,14 @@ export function DataProvider({ children }) {
     };
 
     // Snapshots (Balance History)
-    // Snapshot structure: { id, date: 'YYYY-MM-DD', balances: { accountId: amount } }
     const addSnapshot = (snapshot) => {
         setData(prev => {
-            // Check if snapshot for this date already exists
             const existingIndex = prev.snapshots.findIndex(s => s.date === snapshot.date);
             if (existingIndex >= 0) {
-                // Update existing
                 const newSnapshots = [...prev.snapshots];
                 newSnapshots[existingIndex] = { ...newSnapshots[existingIndex], ...snapshot };
                 return { ...prev, snapshots: newSnapshots };
             }
-            // Add new
             return {
                 ...prev,
                 snapshots: [...prev.snapshots, { ...snapshot, id: snapshot.id || uuidv4() }]
@@ -69,8 +72,11 @@ export function DataProvider({ children }) {
         });
     };
 
-    // Fixed Expenses
+    // Legacy Fixed Expenses (Keep for now or migrate? Let's keep for backward compat but use new system)
     const addFixedExpense = (expense) => {
+        // Auto-migrate to new fixedItems if possible, or just keep as is.
+        // For now, let's just add to the legacy array to not break current UI, 
+        // BUT we should probably start using fixedItems.
         setData(prev => ({
             ...prev,
             fixedExpenses: [...prev.fixedExpenses, { ...expense, id: uuidv4() }]
@@ -84,6 +90,52 @@ export function DataProvider({ children }) {
         }));
     };
 
+    // --- NEW Financial Actions ---
+
+    // Fixed Items (Recurring Income/Expense)
+    const addFixedItem = (item) => {
+        setData(prev => ({
+            ...prev,
+            fixedItems: [...prev.fixedItems, { ...item, id: item.id || uuidv4() }]
+        }));
+    };
+
+    const updateFixedItem = (id, updates) => {
+        setData(prev => ({
+            ...prev,
+            fixedItems: prev.fixedItems.map(item => item.id === id ? { ...item, ...updates } : item)
+        }));
+    };
+
+    const deleteFixedItem = (id) => {
+        setData(prev => ({
+            ...prev,
+            fixedItems: prev.fixedItems.filter(item => item.id !== id)
+        }));
+    };
+
+    // Transactions (One-time or realized fixed items)
+    const addTransaction = (transaction) => {
+        setData(prev => ({
+            ...prev,
+            transactions: [...prev.transactions, { ...transaction, id: transaction.id || uuidv4() }]
+        }));
+    };
+
+    const updateTransaction = (id, updates) => {
+        setData(prev => ({
+            ...prev,
+            transactions: prev.transactions.map(t => t.id === id ? { ...t, ...updates } : t)
+        }));
+    };
+
+    const deleteTransaction = (id) => {
+        setData(prev => ({
+            ...prev,
+            transactions: prev.transactions.filter(t => t.id !== id)
+        }));
+    };
+
     return (
         <DataContext.Provider value={{
             data,
@@ -92,7 +144,14 @@ export function DataProvider({ children }) {
             deleteAccount,
             addSnapshot,
             addFixedExpense,
-            deleteFixedExpense
+            deleteFixedExpense,
+            // New exports
+            addFixedItem,
+            updateFixedItem,
+            deleteFixedItem,
+            addTransaction,
+            updateTransaction,
+            deleteTransaction
         }}>
             {children}
         </DataContext.Provider>
