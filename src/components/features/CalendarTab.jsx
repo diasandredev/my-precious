@@ -151,7 +151,23 @@ export function CalendarTab() {
         resetForm();
     };
 
-
+    const resetForm = () => {
+        setFormData({
+            title: '',
+            amount: '',
+            date: new Date().toISOString().split('T')[0],
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: '',
+            frequency: 'MONTHLY',
+            type: 'EXPENSE',
+            isVariable: false,
+            fixedItemId: null
+        });
+        setItemType('one-time');
+        setIsEditing(false);
+        setIsConfirming(false);
+        setEditingId(null);
+    };
 
     const getItemsForDay = (day) => {
         return monthlyFinancials.filter(item => isSameDay(item.date, day));
@@ -194,7 +210,7 @@ export function CalendarTab() {
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(balance)}
                         </div>
                     </div>
-                    <Button onClick={() => setIsModalOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
+                    <Button onClick={() => { resetForm(); setIsModalOpen(true); }} className="gap-2 shadow-lg shadow-primary/20">
                         <Plus size={18} />
                         <span>Add Item</span>
                     </Button>
@@ -202,15 +218,15 @@ export function CalendarTab() {
             </div>
 
             {/* Grid Calendar View */}
-            <Card className="p-1 bg-card/50 backdrop-blur-sm border-border/50">
-                <div className="grid grid-cols-7 mb-1">
+            <Card className="p-0 bg-white border-none shadow-none">
+                <div className="grid grid-cols-7 mb-1 bg-white">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                         <div key={day} className="p-4 text-center text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                             {day}
                         </div>
                     ))}
                 </div>
-                <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
+                <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
                     {calendarDays.map((day, dayIdx) => {
                         const items = getItemsForDay(day);
                         const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
@@ -224,9 +240,9 @@ export function CalendarTab() {
                             <div
                                 key={day.toString()}
                                 className={cn(
-                                    "min-h-[120px] p-2 transition-colors relative group flex flex-col gap-1",
-                                    !isCurrentMonth ? "bg-[rgb(36,37,55)] text-muted-foreground/50" : "bg-background",
-                                    isCurrentMonth && "hover:bg-[#35374C]"
+                                    "min-h-[120px] p-2 transition-colors relative group flex flex-col gap-1 border-r border-b border-gray-100",
+                                    !isCurrentMonth ? "bg-gray-50/50 text-gray-300" : "bg-white",
+                                    isCurrentMonth && "hover:bg-gray-50"
                                 )}
                                 onClick={() => {
                                     resetForm(); // Reset previous state first

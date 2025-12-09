@@ -40,6 +40,13 @@ export default {
                 card: {
                     DEFAULT: 'hsl(var(--card))',
                     foreground: 'hsl(var(--card-foreground))'
+                },
+                dashboard: {
+                    highlight: '#a855f7', // Purple
+                    success: '#22c55e',   // Green
+                    warning: '#f59e0b',   // Orange
+                    info: '#3b82f6',      // Blue
+                    danger: '#ef4444',    // Red
                 }
             },
             borderRadius: {
@@ -68,6 +75,9 @@ export default {
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
                 'accordion-up': 'accordion-up 0.2s ease-out'
+            },
+            fontFamily: {
+                logo: ['"Playwrite NO"', '"Playwrite Norge"', 'cursive']
             }
         }
     },

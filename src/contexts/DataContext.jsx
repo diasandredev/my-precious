@@ -21,6 +21,7 @@ export function DataProvider({ children }) {
             ...parsed,
             fixedItems: parsed.fixedItems || [], // Replaces fixedExpenses eventually
             transactions: parsed.transactions || [],
+            settings: parsed.settings || { mainCurrency: 'BRL' } // Default settings
         };
     });
 
@@ -29,6 +30,23 @@ export function DataProvider({ children }) {
     }, [data]);
 
     // --- Actions ---
+
+    // Settings
+    const updateSettings = (newSettings) => {
+        setData(prev => ({
+            ...prev,
+            settings: { ...prev.settings, ...newSettings }
+        }));
+    };
+
+    // Helper to format currency based on settings
+    const formatCurrency = (value) => {
+        const currency = data.settings.mainCurrency || 'BRL';
+        return new Intl.NumberFormat(
+            currency === 'BRL' ? 'pt-BR' : 'en-US',
+            { style: 'currency', currency: currency }
+        ).format(value);
+    };
 
     // Accounts
     const addAccount = (account) => {
@@ -151,7 +169,10 @@ export function DataProvider({ children }) {
             deleteFixedItem,
             addTransaction,
             updateTransaction,
-            deleteTransaction
+            deleteTransaction,
+            // Settings
+            updateSettings,
+            formatCurrency
         }}>
             {children}
         </DataContext.Provider>
