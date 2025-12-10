@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 import { format, parseISO } from 'date-fns';
 
 export function AccountsTab() {
-    const { data, addAccount, updateAccount, deleteAccount, addSnapshot, formatCurrency } = useData();
+    const { data, addAccount, updateAccount, deleteAccount, addSnapshot, deleteSnapshot, formatCurrency } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
 
@@ -67,6 +67,13 @@ export function AccountsTab() {
     const handleDelete = (id) => {
         if (confirm('Are you sure you want to delete this account?')) {
             deleteAccount(id);
+        }
+    };
+
+    const handleDeleteSnapshot = (e, id) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this snapshot?')) {
+            deleteSnapshot(id);
         }
     };
 
@@ -249,7 +256,7 @@ export function AccountsTab() {
                                         "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border",
                                         snap.date === selectedDate && isUpdateMode
                                             ? "bg-primary/5 border-primary/20"
-                                            : "hover:bg-gray-50 border-transparent hover:border-gray-100"
+                                            : "hover:bg-gray-50 border-transparent hover:border-gray-100 group"
                                     )}
                                 >
                                     <div>
@@ -260,10 +267,21 @@ export function AccountsTab() {
                                             {Object.keys(snap.balances).length} accounts
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-sm font-bold text-gray-900">
-                                            {formatCurrency(Object.values(snap.balances).reduce((a, b) => a + b, 0))}
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-gray-900">
+                                                {formatCurrency(Object.values(snap.balances).reduce((a, b) => a + b, 0))}
+                                            </div>
                                         </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => handleDeleteSnapshot(e, snap.id)}
+                                            className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 size={14} />
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -314,7 +332,7 @@ export function AccountsTab() {
                         )}
                     </Card>
                 </div>
-            </div>
+            </div >
 
             <Modal
                 isOpen={isModalOpen}
@@ -370,6 +388,6 @@ export function AccountsTab() {
                     </div>
                 </form>
             </Modal>
-        </div>
+        </div >
     );
 }

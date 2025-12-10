@@ -23,7 +23,9 @@ export function CalendarTab() {
         startDate: new Date().toISOString().split('T')[0], // For recurring
         endDate: '', // Optional end date
         frequency: 'MONTHLY', // 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'
+        frequency: 'MONTHLY', // 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'
         type: 'EXPENSE', // 'INCOME', 'EXPENSE'
+        categoryId: '', // New category field
 
         isVariable: false,
         fixedItemId: null // To link transaction to fixed item
@@ -57,6 +59,7 @@ export function CalendarTab() {
             endDate: '',
             frequency: 'MONTHLY',
             type: item.type,
+            categoryId: item.categoryId || '', // Carry over category
             isVariable: false, // Once confirmed, it's a fixed amount transaction
             fixedItemId: item.fixedItemId // Capture the ID for deduplication
         });
@@ -75,6 +78,7 @@ export function CalendarTab() {
             startDate: item.originalItem?.startDate || format(new Date(item.date), 'yyyy-MM-dd'),
             frequency: item.originalItem?.frequency || 'MONTHLY',
             type: item.type,
+            categoryId: item.categoryId || item.originalItem?.categoryId || '',
             isVariable: item.isVariable || false
         });
 
@@ -105,6 +109,7 @@ export function CalendarTab() {
                         title: formData.title,
                         amount: formData.isVariable ? 0 : amount,
                         type: formData.type,
+                        categoryId: formData.categoryId,
                         frequency: formData.frequency,
                         startDate: formData.startDate,
                         endDate: formData.endDate,
@@ -117,6 +122,7 @@ export function CalendarTab() {
                         title: formData.title,
                         amount: amount,
                         type: formData.type,
+                        categoryId: formData.categoryId,
                         date: formData.date,
                         isPaid: true
                     });
@@ -129,6 +135,7 @@ export function CalendarTab() {
                     title: formData.title,
                     amount: formData.isVariable ? 0 : amount,
                     type: formData.type,
+                    categoryId: formData.categoryId,
                     frequency: formData.frequency,
                     startDate: formData.startDate,
                     endDate: formData.endDate,
@@ -139,6 +146,7 @@ export function CalendarTab() {
                     title: formData.title,
                     amount: amount,
                     type: formData.type,
+                    categoryId: formData.categoryId,
                     date: formData.date,
                     isPaid: true,
                     fixedItemId: formData.fixedItemId // Pass the link
@@ -160,6 +168,7 @@ export function CalendarTab() {
             endDate: '',
             frequency: 'MONTHLY',
             type: 'EXPENSE',
+            categoryId: '',
             isVariable: false,
             fixedItemId: null
         });
@@ -470,6 +479,25 @@ export function CalendarTab() {
                                 required={!(itemType === 'recurring' && formData.isVariable)}
                             />
                         </div>
+                    </div>
+
+                    <div>
+                        <Label>Category</Label>
+                        <select
+                            className="w-full flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                            value={formData.categoryId}
+                            onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
+                        >
+                            <option value="">Uncategorized</option>
+                            {(data.categories || [])
+                                .filter(cat => cat.type === 'BOTH' || cat.type === formData.type)
+                                .map(cat => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.name}
+                                    </option>
+                                ))
+                            }
+                        </select>
                     </div>
 
                     <div>

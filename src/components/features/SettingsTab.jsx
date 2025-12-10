@@ -1,25 +1,70 @@
 import { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Card, Button, Label } from '../ui';
-import { Save } from 'lucide-react';
+import { Card, Button, Label, Input, Modal } from '../ui';
+import { Save, Plus, Trash2, Edit2, Palette } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 export function SettingsTab() {
-    const { data, updateSettings } = useData();
+    const { data, updateSettings, addCategory, updateCategory, deleteCategory } = useData();
     const [currency, setCurrency] = useState(data.settings?.mainCurrency || 'BRL');
 
-    const handleSave = () => {
+    // Category Management State
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState(null);
+    const [categoryForm, setCategoryForm] = useState({
+        name: '',
+        color: '#3b82f6',
+        type: 'EXPENSE'
+    });
+
+    const handleSaveSettings = () => {
         updateSettings({ mainCurrency: currency });
         alert('Settings saved!');
     };
 
+    const handleEditCategory = (category) => {
+        setEditingCategory(category);
+        setCategoryForm({
+            name: category.name,
+            color: category.color,
+            type: category.type || 'EXPENSE'
+        });
+        setIsCategoryModalOpen(true);
+    };
+
+    const handleAddCategory = () => {
+        setEditingCategory(null);
+        setCategoryForm({
+            name: '',
+            color: '#3b82f6', // Default Blue
+            type: 'EXPENSE'
+        });
+        setIsCategoryModalOpen(true);
+    };
+
+    const handleCategorySubmit = (e) => {
+        e.preventDefault();
+        if (editingCategory) {
+            updateCategory(editingCategory.id, categoryForm);
+        } else {
+            addCategory(categoryForm);
+        }
+        setIsCategoryModalOpen(false);
+    };
+
+    const handleDeleteCategory = (id) => {
+        if (window.confirm('Are you sure you want to delete this category? Items using this category will lose their association.')) {
+            deleteCategory(id);
+        }
+    };
+
     return (
-        <div className="space-y-6 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+        <div className="space-y-8 max-w-4xl mx-auto pb-8">
+            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Settings</h2>
 
-            <Card className="p-6 bg-white shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h3>
-
-                <div className="space-y-4">
+            {/* General Preferences */}
+            <SettingsSection title="General Preferences" description="Manage your global application settings.">
+                <div className="space-y-4 max-w-md">
                     <div>
                         <Label className="mb-2 block">Main Currency</Label>
                         <select
@@ -33,18 +78,148 @@ export function SettingsTab() {
                             <option value="GBP">GBP (£)</option>
                         </select>
                         <p className="text-xs text-gray-500 mt-1">
-                            This currency will be used as the default for dashboard aggregations.
+                            Used for dashboard aggregations.
                         </p>
                     </div>
 
-                    <div className="pt-4 flex justify-end">
-                        <Button onClick={handleSave} className="gap-2">
+                    <div className="pt-2">
+                        <Button onClick={handleSaveSettings} className="gap-2">
                             <Save size={16} />
-                            Save Changes
+                            Save Preferences
                         </Button>
                     </div>
                 </div>
-            </Card>
+            </SettingsSection>
+
+            {/* Categories Management */}
+            <SettingsSection
+                title="Categories"
+                description="Manage income and expense categories. Assign colors to visualize them in charts."
+                action={
+                    <Button onClick={handleAddCategory} size="sm" variant="outline" className="gap-2 border-primary/20 text-primary hover:bg-primary/5">
+                        <Plus size={16} />
+                        Add Category
+                    </Button>
+                }
+            >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {data.categories?.map(cat => (
+                        <div key={cat.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow group">
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
+                                    style={{ backgroundColor: `${cat.color}20` }}
+                                >
+                                    <div
+                                        className="w-4 h-4 rounded-full"
+                                        style={{ backgroundColor: cat.color }}
+                                    />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900">{cat.name}</h4>
+                                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                                        {cat.type}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-gray-400 hover:text-primary"
+                                    onClick={() => handleEditCategory(cat)}
+                                >
+                                    <Edit2 size={14} />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-gray-400 hover:text-red-500"
+                                    onClick={() => handleDeleteCategory(cat.id)}
+                                >
+                                    <Trash2 size={14} />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+
+                    {(!data.categories || data.categories.length === 0) && (
+                        <p className="text-sm text-gray-400 col-span-2 text-center py-8">
+                            No categories found. Create one to get started!
+                        </p>
+                    )}
+                </div>
+            </SettingsSection>
+
+            {/* Category Modal */}
+            <Modal
+                isOpen={isCategoryModalOpen}
+                onClose={() => setIsCategoryModalOpen(false)}
+                title={editingCategory ? "Edit Category" : "New Category"}
+            >
+                <form onSubmit={handleCategorySubmit} className="space-y-4">
+                    <div>
+                        <Label>Category Name</Label>
+                        <Input
+                            value={categoryForm.name}
+                            onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                            placeholder="e.g. Groceries"
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label>Type</Label>
+                            <select
+                                value={categoryForm.type}
+                                onChange={e => setCategoryForm({ ...categoryForm, type: e.target.value })}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                                <option value="EXPENSE">Expense</option>
+                                <option value="INCOME">Income</option>
+                                <option value="BOTH">Both</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Color</Label>
+                            <div className="flex items-center gap-2 h-10">
+                                <input
+                                    type="color"
+                                    value={categoryForm.color}
+                                    onChange={e => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                                    className="h-10 w-10 rounded border border-gray-200 cursor-pointer p-0.5 bg-white"
+                                />
+                                <span className="text-sm text-gray-500 font-mono uppercase">{categoryForm.color}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button type="button" variant="ghost" onClick={() => setIsCategoryModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">
+                            {editingCategory ? 'Save Changes' : 'Create Category'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
+    );
+}
+
+function SettingsSection({ title, description, children, action }) {
+    return (
+        <Card className="p-6 bg-white shadow-sm border border-gray-100">
+            <div className="flex justify-between items-start mb-6">
+                <div>
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{description}</p>
+                </div>
+                {action}
+            </div>
+            {children}
+        </Card>
     );
 }

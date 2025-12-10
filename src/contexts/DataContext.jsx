@@ -21,6 +21,24 @@ export function DataProvider({ children }) {
             ...parsed,
             fixedItems: parsed.fixedItems || [], // Replaces fixedExpenses eventually
             transactions: parsed.transactions || [],
+            categories: parsed.categories || [
+                // Default Categories
+                // Fixed
+                { id: 'cat_housing', name: 'Housing', color: '#ef4444', type: 'EXPENSE' }, // Red
+                { id: 'cat_services', name: 'Services', color: '#f59e0b', type: 'EXPENSE' }, // Amber
+                { id: 'cat_transport_fixed', name: 'Transport (Fixed)', color: '#3b82f6', type: 'EXPENSE' }, // Blue
+                // Variable
+                { id: 'cat_food', name: 'Food', color: '#10b981', type: 'EXPENSE' }, // Emerald
+                { id: 'cat_transport_var', name: 'Transport (Variable)', color: '#06b6d4', type: 'EXPENSE' }, // Cyan
+                { id: 'cat_health', name: 'Health', color: '#ec4899', type: 'EXPENSE' }, // Pink
+                { id: 'cat_leisure', name: 'Leisure', color: '#8b5cf6', type: 'EXPENSE' }, // Violet
+                { id: 'cat_personal', name: 'Personal Care', color: '#f97316', type: 'EXPENSE' }, // Orange
+                // Income
+                { id: 'cat_salary', name: 'Salary', color: '#22c55e', type: 'INCOME' }, // Green
+                { id: 'cat_freelance', name: 'Freelance', color: '#84cc16', type: 'INCOME' }, // Lime
+                { id: 'cat_investments', name: 'Investments', color: '#14b8a6', type: 'INCOME' }, // Teal
+                { id: 'cat_other', name: 'Other', color: '#6b7280', type: 'BOTH' } // Gray
+            ],
             settings: parsed.settings || { mainCurrency: 'BRL' } // Default settings
         };
     });
@@ -90,6 +108,13 @@ export function DataProvider({ children }) {
         });
     };
 
+    const deleteSnapshot = (id) => {
+        setData(prev => ({
+            ...prev,
+            snapshots: prev.snapshots.filter(s => s.id !== id)
+        }));
+    };
+
     // Legacy Fixed Expenses (Keep for now or migrate? Let's keep for backward compat but use new system)
     const addFixedExpense = (expense) => {
         // Auto-migrate to new fixedItems if possible, or just keep as is.
@@ -154,6 +179,28 @@ export function DataProvider({ children }) {
         }));
     };
 
+    // --- Categories ---
+    const addCategory = (category) => {
+        setData(prev => ({
+            ...prev,
+            categories: [...(prev.categories || []), { ...category, id: category.id || uuidv4() }]
+        }));
+    };
+
+    const updateCategory = (id, updates) => {
+        setData(prev => ({
+            ...prev,
+            categories: (prev.categories || []).map(c => c.id === id ? { ...c, ...updates } : c)
+        }));
+    };
+
+    const deleteCategory = (id) => {
+        setData(prev => ({
+            ...prev,
+            categories: (prev.categories || []).filter(c => c.id !== id)
+        }));
+    };
+
     return (
         <DataContext.Provider value={{
             data,
@@ -161,6 +208,7 @@ export function DataProvider({ children }) {
             updateAccount,
             deleteAccount,
             addSnapshot,
+            deleteSnapshot,
             addFixedExpense,
             deleteFixedExpense,
             // New exports
@@ -170,6 +218,10 @@ export function DataProvider({ children }) {
             addTransaction,
             updateTransaction,
             deleteTransaction,
+            // Categories
+            addCategory,
+            updateCategory,
+            deleteCategory,
             // Settings
             updateSettings,
             formatCurrency

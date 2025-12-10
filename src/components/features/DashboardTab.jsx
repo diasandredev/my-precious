@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isAfter, isBefore } from 'date-fns';
 import {
-    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, PieChart, Pie
 } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Search, MoreHorizontal, TrendingUp, TrendingDown } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
@@ -35,10 +35,15 @@ export function DashboardTab() {
         return { currentTotal, percentChange, diff };
     }, [data.snapshots]);
 
-    // 2. Chart Data (2 months back + Current + 6 months forward)
-    const chartData = useMemo(() => {
+    // 2. Chart Data (2 months back + Current + 6 months forward) & Pie Data
+    const { chartData, pieData } = useMemo(() => {
         const currentDate = new Date();
         const months = [];
+        const currentMonthData = { expenses: {} }; // for pie chart
+
+        // Default categories map for easy lookup
+        const cats = data.categories || [];
+        const getCat = (id) => cats.find(c => c.id === id) || { name: 'Uncategorized', color: '#9ca3af', type: 'EXPENSE' };
 
         // Generate range: -2 to +6
         for (let i = -2; i <= 6; i++) {
@@ -59,8 +64,26 @@ export function DashboardTab() {
             const tDate = new Date(t.date);
             const monthData = months.find(m => isSameMonth(tDate, m.date));
             if (monthData) {
-                if (t.type === 'EXPENSE') monthData.expense += t.amount;
-                else if (t.type === 'INCOME') monthData.income += t.amount;
+                if (t.type === 'EXPENSE') {
+                    monthData.expense += t.amount;
+                    // Add to category bucket
+                    const catId = t.categoryId || 'uncategorized';
+                    if (!monthData[catId]) monthData[catId] = 0;
+                    monthData[catId] += t.amount;
+
+                    // For Pie Chart (Current Month only)
+                    if (monthData.isCurrent) {
+                        if (!currentMonthData.expenses[catId]) currentMonthData.expenses[catId] = 0;
+                        currentMonthData.expenses[catId] += t.amount;
+                    }
+
+                } else if (t.type === 'INCOME') {
+                    monthData.income += t.amount;
+                    // Add to category bucket (if we stack income too)
+                    const catId = t.categoryId || 'uncategorized';
+                    if (!monthData[catId]) monthData[catId] = 0;
+                    monthData[catId] += t.amount;
+                }
             }
         });
 
@@ -76,18 +99,69 @@ export function DashboardTab() {
                 months.filter(m => m.isFuture).forEach(m => {
                     // Check if item should occur in this month?
                     // For MVP: assume monthly recurrence for all fixed items
-                    if (item.type === 'EXPENSE') m.expense += item.amount;
-                    else if (item.type === 'INCOME') m.income += item.amount;
+                    if (item.type === 'EXPENSE') {
+                        m.expense += item.amount;
+                        // Category projection
+                        const catId = item.categoryId || 'uncategorized';
+                        if (!m[catId]) m[catId] = 0;
+                        m[catId] += item.amount;
+
+                        // Pie Chart for Current Month (if active)
+                        if (m.isCurrent) {
+                            if (!currentMonthData.expenses[catId]) currentMonthData.expenses[catId] = 0;
+                            currentMonthData.expenses[catId] += item.amount;
+                        }
+
+                    } else if (item.type === 'INCOME') {
+                        m.income += item.amount;
+                        // Category projection
+                        const catId = item.categoryId || 'uncategorized';
+                        if (!m[catId]) m[catId] = 0;
+                        m[catId] += item.amount;
+                    }
                 });
             });
         }
 
-        return months;
-    }, [data.transactions, data.fixedItems]);
+        return {
+            chartData: months,
+            pieData: Object.entries(currentMonthData.expenses).map(([catId, amount]) => {
+                const cat = getCat(catId);
+                return { name: cat.name, value: amount, color: cat.color };
+            })
+        };
+    }, [data.transactions, data.fixedItems, data.categories]);
 
-    // 3. Total Spendings (Current Month? or displayed range?)
-    // Request says "Total Spendings chart n está representando nenhum dado real". 
-    // And user complained about logic. Let's show TOTAL EXPENSES for the CURRENT MONTH as the main KPI.
+    // 3. Projected Net Worth (Current + Future)
+    const projectionData = useMemo(() => {
+        const currentTotal = netWorthStats.currentTotal;
+        let runningBalance = currentTotal;
+
+        // Filter for current and future months
+        const futureMonths = chartData.filter(d => d.isCurrent || d.isFuture);
+
+        // We need to re-calculate running balance starting from NOW
+        // The chartData already has projected Income/Expense for future months
+
+        return futureMonths.map((month, index) => {
+            if (index === 0) {
+                // Current Month: Just show current Net Worth
+                return { ...month, accumulatedBalance: currentTotal };
+            }
+
+            // For subsequent months, apply the projected net flow:
+            // NewBalance = PrevBalance + (ProjectedIncome - ProjectedExpense)
+            const netFlow = month.income - month.expense;
+            runningBalance += netFlow;
+
+            return {
+                ...month,
+                accumulatedBalance: runningBalance
+            };
+        });
+    }, [chartData, netWorthStats.currentTotal]);
+
+    // 4. Total Spendings (Current Month)
     const currentMonthMetrics = useMemo(() => {
         const current = chartData.find(d => d.isCurrent);
         return current || { expense: 0, income: 0 };
@@ -114,7 +188,7 @@ export function DashboardTab() {
                     </div>
                 </Card>
 
-                {/* Income / Savings (Using Income for this slot?) */}
+                {/* Income / Savings */}
                 <Card className="p-6 bg-white">
                     <div className="flex justify-between items-start mb-4">
                         <div>
@@ -153,6 +227,69 @@ export function DashboardTab() {
 
             </div>
 
+            {/* Projection Chart */}
+            <Card className="p-6 bg-white">
+                <div className="flex justify-between items-start mb-8">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900">
+                            Wealth Projection
+                        </h3>
+                        <p className="text-sm text-gray-400">Estimated Net Worth for next 6 months</p>
+                    </div>
+                </div>
+
+                <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={projectionData}>
+                            <defs>
+                                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                dy={10}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                tickFormatter={(value) => formatCurrency(value).replace(/\D00(?=\D*$)/, '')}
+                                width={80}
+                            />
+                            <Tooltip
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
+                                                <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{label}</p>
+                                                <p className="text-sm font-bold text-violet-600">
+                                                    {formatCurrency(payload[0].value)}
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="accumulatedBalance"
+                                stroke="#8b5cf6"
+                                strokeWidth={2}
+                                fillOpacity={1}
+                                fill="url(#colorBalance)"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </Card>
+
             {/* Bottom Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -168,7 +305,7 @@ export function DashboardTab() {
                     </div>
                 </Card>
 
-                {/* Main Chart */}
+                {/* Main Chart (Income vs Expense) */}
                 <Card className="lg:col-span-2 p-6 bg-white min-h-[500px]">
                     <div className="flex justify-between items-start mb-8">
                         <div>
@@ -179,51 +316,110 @@ export function DashboardTab() {
                         </div>
                     </div>
 
-                    <div className="h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} barSize={20}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                    dy={10}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                    tickFormatter={(value) => formatCurrency ? formatCurrency(value).replace(/\D00(?=\D*$)/, '') : value} // Mini formatter attempt
-                                />
-                                <Tooltip
-                                    cursor={{ fill: 'transparent' }}
-                                    content={({ active, payload, label }) => {
-                                        if (active && payload && payload.length) {
-                                            return (
-                                                <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
-                                                    <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{label}</p>
-                                                    {payload.map((p, i) => (
-                                                        <p key={i} className="text-sm font-medium" style={{ color: p.color }}>
-                                                            {p.name}: {formatCurrency(p.value)}
-                                                        </p>
-                                                    ))}
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
-                                />
-                                <Legend />
-                                <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
 
-            </div>
-        </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
+                        {/* Stacked Bar Chart */}
+                        <div className="h-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} barSize={20}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                        tickFormatter={(value) => formatCurrency ? formatCurrency(value).replace(/\D00(?=\D*$)/, '') : value}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: 'transparent' }}
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
+                                                        <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{label}</p>
+                                                        {payload.map((p, i) => (
+                                                            <p key={i} className="text-sm font-medium" style={{ color: p.color }}>
+                                                                {p.name}: {formatCurrency(p.value)}
+                                                            </p>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Legend />
+                                    {/* Generate Bars for Categories */}
+                                    {(data.categories || [])
+                                        .filter(c => c.type === 'EXPENSE' || c.type === 'BOTH')
+                                        .map(cat => (
+                                            <Bar
+                                                key={cat.id}
+                                                dataKey={cat.id}
+                                                name={cat.name}
+                                                stackId="expenses"
+                                                fill={cat.color}
+                                            />
+                                        ))
+                                    }
+                                    {/* Uncategorized expenses */}
+                                    <Bar dataKey="uncategorized" name="Uncategorized" stackId="expenses" fill="#9ca3af" />
+
+                                    {/* Income Bar (Single or Stacked? User said Income vs Expense stacked. Usually income is one block) */}
+                                    {/* Let's keep Income as a separate bar stack for comparison */}
+                                    {(data.categories || [])
+                                        .filter(c => c.type === 'INCOME')
+                                        .map(cat => (
+                                            <Bar
+                                                key={cat.id}
+                                                dataKey={cat.id}
+                                                name={cat.name}
+                                                stackId="income"
+                                                fill={cat.color}
+                                            />
+                                        ))
+                                    }
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Pie Chart */}
+                        <div className="h-full relative">
+                            <h4 className="absolute top-0 left-0 text-sm font-bold text-gray-400 uppercase tracking-wider">Expenses Breakdown</h4>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        formatter={(value) => formatCurrency(value)}
+                                    />
+                                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </Card >
+
+            </div >
+        </div >
     );
 }
 
