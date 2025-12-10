@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, getDate, startOfWeek, endOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Settings, Calendar as CalendarIcon, DollarSign, Repeat, ArrowRightLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Settings, Calendar as CalendarIcon, DollarSign, Repeat, ArrowRightLeft, Upload } from 'lucide-react';
+import { parseTransactionsCSV } from '../../lib/csvParser';
 import { useData } from '../../contexts/DataContext';
 import { Button, Input, Label, Modal, Card } from '../ui';
 import { cn } from '../../lib/utils';
@@ -178,6 +179,96 @@ export function CalendarTab() {
         setEditingId(null);
     };
 
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const text = await file.text();
+        const { transactions, errors } = parseTransactionsCSV(text);
+
+        if (errors.length > 0) {
+            console.warn('CSV Import Errors:', errors);
+            // Optional: alert user about errors
+        }
+
+        if (transactions.length === 0) {
+            alert('No valid expenses found to import.');
+            return;
+        }
+
+        if (window.confirm(`Found ${transactions.length} expenses to import. Proceed?`)) {
+            let importedCount = 0;
+
+            // Category Mapping
+            const categoryMap = {
+                // Specific Descriptions (Priority)
+                'NETFLIX': 'Assinatura',
+                'MELIMAIS': 'Assinatura',
+                'SPOTIFY': 'Assinatura',
+                'SMILES CLUBE SMILES': 'Assinatura',
+                'LOJA GAMERS CLUB': 'Assinatura',
+                'AMAZON BR': 'Compras',
+                'AIR EUROPA': 'Viagem',
+                'LATAM': 'Viagem',
+
+                // Category Column Matches
+                'T&E Companhia aérea': 'Viagem',
+                'T&E': 'Viagem',
+                'Supermercados / Mercearia / Padarias / Lojas de Conveniência': 'Supermercado',
+                'Transporte': 'Transporte',
+                'TV por assinatura / Serviços de rádio': 'Assinatura',
+                'Entretenimento': 'Assinatura',
+                'Restaurantes / Lanchonetes / Bares': 'Restaurante',
+                'Farmácias': 'Health',
+                'Serviços de telecomunicações': 'Internet',
+                'Vestuário / Roupas': 'Vestuario',
+                'Departamento / Desconto': 'Compras'
+            };
+
+            transactions.forEach(t => {
+                let categoryId = 'cat_other'; // Default
+
+                // Helper to search map
+                const findCategory = (str) => {
+                    for (const [key, val] of Object.entries(categoryMap)) {
+                        if (str.toUpperCase().includes(key.toUpperCase())) {
+                            return val;
+                        }
+                    }
+                    return null;
+                };
+
+                // 1. Check Description (Highest Priority)
+                let mappedName = findCategory(t.description);
+
+                // 2. Check Original Category
+                if (!mappedName) {
+                    mappedName = findCategory(t.categoryOriginal);
+                }
+
+                if (mappedName) {
+                    const catMatch = data.categories?.find(c => c.name.toLowerCase() === mappedName.toLowerCase());
+                    if (catMatch) categoryId = catMatch.id;
+                }
+
+                addTransaction({
+                    title: t.description,
+                    amount: t.amount,
+                    type: 'EXPENSE',
+                    categoryId: categoryId,
+                    date: t.date,
+                    isPaid: true
+                });
+                importedCount++;
+            });
+
+            alert(`Successfully imported ${importedCount} transactions.`);
+
+            // Reset input
+            e.target.value = '';
+        }
+    };
+
     const getItemsForDay = (day) => {
         return monthlyFinancials.filter(item => isSameDay(item.date, day));
     };
@@ -219,6 +310,19 @@ export function CalendarTab() {
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(balance)}
                         </div>
                     </div>
+                    <div className="relative">
+                        <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleFileUpload}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            title="Import CSV"
+                        />
+                        <Button variant="outline" className="gap-2">
+                            <Upload size={18} />
+                            <span className="hidden sm:inline">Import CSV</span>
+                        </Button>
+                    </div>
                     <Button onClick={() => { resetForm(); setIsModalOpen(true); }} className="gap-2 shadow-lg shadow-primary/20">
                         <Plus size={18} />
                         <span>Add Item</span>
@@ -241,9 +345,8 @@ export function CalendarTab() {
                         const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
                         const isCurrentDay = isToday(day);
 
-                        const dayBalance = items.reduce((acc, curr) => {
-                            return acc + (curr.type === 'INCOME' ? curr.amount : -curr.amount);
-                        }, 0);
+                        const dayIncome = items.filter(i => i.type === 'INCOME').reduce((acc, c) => acc + c.amount, 0);
+                        const dayExpense = items.filter(i => i.type === 'EXPENSE').reduce((acc, c) => acc + c.amount, 0);
 
                         return (
                             <div
@@ -271,55 +374,20 @@ export function CalendarTab() {
                                     )}>
                                         {format(day, 'd')}
                                     </span>
-                                    {items.length > 0 && (
-                                        <span className={cn(
-                                            "text-[10px] font-bold",
-                                            dayBalance >= 0 ? "text-green-500" : "text-red-400"
-                                        )}>
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dayBalance)}
-                                        </span>
-                                    )}
-                                </div>
+                                    <div className="flex flex-col gap-0.5 mt-auto">
+                                        {dayIncome > 0 && (
+                                            <div className="text-[10px] font-bold text-green-600 bg-green-100 rounded px-1 text-right truncate">
+                                                +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dayIncome)}
+                                            </div>
+                                        )}
+                                        {dayExpense > 0 && (
+                                            <div className="text-[10px] font-bold text-red-600 bg-red-100 rounded px-1 text-right truncate">
+                                                -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dayExpense)}
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <div className="flex-1 flex flex-col gap-1 mt-1 overflow-y-auto custom-scrollbar max-h-[80px]">
-                                    {items.map(item => (
-                                        <div
-                                            key={item.id}
-                                            className={cn(
-                                                "text-xs p-1.5 rounded border truncate group/item transition-all duration-200 flex items-center justify-between cursor-pointer",
-                                                "hover:scale-[1.02] hover:shadow-sm hover:brightness-105",
-                                                item.type === 'INCOME'
-                                                    ? "bg-green-500/10 border-green-500/20 text-green-500"
-                                                    : "bg-red-500/10 border-red-500/20 text-red-500",
-                                                item.status === 'PROJECTED' && "opacity-70 border-dashed"
-                                            )}
-                                            title={`${item.name} - R$ ${item.amount}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (item.status === 'PROJECTED') {
-                                                    handleConfirmItem(item);
-                                                } else {
-                                                    handleEditItem(item);
-                                                }
-                                            }}
-                                        >
-                                            <span className="truncate flex-1 font-medium">
-                                                {item.isVariable && item.status === 'PROJECTED' ? '~' : ''}{item.name}
-                                            </span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (item.fixedItemId) deleteFixedItem(item.fixedItemId);
-                                                    else deleteTransaction(item.id);
-                                                }}
-                                                className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded ml-1 hover:bg-black/20"
-                                            >
-                                                <Trash2 size={10} />
-                                            </button>
-                                        </div>
-                                    ))}
                                 </div>
-
                             </div>
                         );
                     })}
@@ -342,6 +410,7 @@ export function CalendarTab() {
                                 <tr>
                                     <th className="px-4 py-3 text-left font-medium">Date</th>
                                     <th className="px-4 py-3 text-left font-medium">Description</th>
+                                    <th className="px-4 py-3 text-left font-medium">Category</th>
                                     <th className="px-4 py-3 text-left font-medium">Type</th>
                                     <th className="px-4 py-3 text-right font-medium">In</th>
                                     <th className="px-4 py-3 text-right font-medium">Out</th>
@@ -367,6 +436,11 @@ export function CalendarTab() {
                                                 {item.isVariable && <span className="ml-2 text-[10px] bg-blue-500/10 text-blue-500 px-1 py-0.5 rounded">VAR</span>}
                                             </td>
                                             <td className="px-4 py-3">
+                                                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded inline-block">
+                                                    {(data.categories?.find(c => c.id === item.categoryId)?.name) || 'Uncategorized'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">
                                                 <span className={cn(
                                                     "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
                                                     item.type === 'INCOME' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
@@ -389,16 +463,41 @@ export function CalendarTab() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-center">
-                                                {item.status === 'PROJECTED' && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 text-[10px] px-2 bg-primary/10 hover:bg-primary/20 text-primary"
-                                                        onClick={() => handleConfirmItem(item)}
-                                                    >
-                                                        Confirm
-                                                    </Button>
-                                                )}
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {item.status === 'PROJECTED' ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 text-[10px] px-2 bg-primary/10 hover:bg-primary/20 text-primary"
+                                                            onClick={(e) => { e.stopPropagation(); handleConfirmItem(item); }}
+                                                        >
+                                                            Confirm
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                                                onClick={(e) => { e.stopPropagation(); handleEditItem(item); }}
+                                                            >
+                                                                <Settings size={14} />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 text-muted-foreground hover:text-red-500"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (item.fixedItemId) deleteFixedItem(item.fixedItemId);
+                                                                    else deleteTransaction(item.id);
+                                                                }}
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
