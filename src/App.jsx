@@ -7,7 +7,7 @@ import { DashboardTab } from './components/features/DashboardTab';
 import { SettingsTab } from './components/features/SettingsTab';
 import { ProjectionsTab } from './components/features/ProjectionsTab';
 import { Sidebar } from './components/layout/Sidebar';
-import { LoadExampleData } from './components/LoadExampleData';
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -54,7 +54,7 @@ function App() {
         </div>
       </main>
 
-      <LoadExampleData />
+
     </div>
   );
 }
