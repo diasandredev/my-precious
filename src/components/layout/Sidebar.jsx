@@ -7,7 +7,7 @@ export function Sidebar({ activeTab, onTabChange }) {
         main: [
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'accounts', label: 'Accounts', icon: Wallet },
-            { id: 'balances', label: 'Balances', icon: TrendingUp },
+            { id: 'projections', label: 'Projections', icon: TrendingUp },
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
         ],
         personal: [
@@ -69,10 +69,7 @@ export function Sidebar({ activeTab, onTabChange }) {
             </div>
 
             <div className="p-6 border-t border-gray-50">
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100/50">
-                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Monthly Cashback</p>
-                    <p className="text-xl font-bold text-gray-900">$215.50</p>
-                </div>
+                {/* Monthly Cashback Removed */}
 
                 <button className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors w-full px-2">
                     <LogOut size={18} />

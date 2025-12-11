@@ -24,26 +24,25 @@ export function DataProvider({ children }) {
             categories: parsed.categories || [
                 // Default Categories
                 // Fixed/Essential
-                { id: 'cat_housing', name: 'Housing', color: '#ef4444', type: 'EXPENSE' },
-                { id: 'cat_services', name: 'Services', color: '#f59e0b', type: 'EXPENSE' },
+                { id: 'cat_housing', name: 'Casa', color: '#ef4444', type: 'EXPENSE' },
                 { id: 'cat_internet', name: 'Internet', color: '#0ea5e9', type: 'EXPENSE' },
                 { id: 'cat_condo', name: 'Condominio', color: '#64748b', type: 'EXPENSE' },
+                { id: 'cat_luz', name: 'Luz', color: '#f59e0b', type: 'EXPENSE' },
+                { id: 'cat_taxes', name: 'Impostos', color: '#78716c', type: 'EXPENSE' },
 
                 // Variable/Lifestyle
-                { id: 'cat_food', name: 'Food', color: '#10b981', type: 'EXPENSE' },
                 { id: 'cat_supermarket', name: 'Supermercado', color: '#34d399', type: 'EXPENSE' },
-                { id: 'cat_restaurant', name: 'Restaurante', color: '#fbbf24', type: 'EXPENSE' },
+                { id: 'cat_restaurant', name: 'Restaurantes', color: '#fbbf24', type: 'EXPENSE' },
                 { id: 'cat_transport', name: 'Transporte', color: '#3b82f6', type: 'EXPENSE' },
                 { id: 'cat_travel', name: 'Viagem', color: '#8b5cf6', type: 'EXPENSE' }, // Purple
-                { id: 'cat_subscription', name: 'Assinatura', color: '#ec4899', type: 'EXPENSE' }, // Pink
+                { id: 'cat_subscription', name: 'Assinaturas', color: '#ec4899', type: 'EXPENSE' }, // Pink
                 { id: 'cat_shopping', name: 'Compras', color: '#f43f5e', type: 'EXPENSE' }, // Rose
                 { id: 'cat_clothing', name: 'Vestuario', color: '#d946ef', type: 'EXPENSE' }, // Fuchsia
-                { id: 'cat_health', name: 'Health', color: '#ef4444', type: 'EXPENSE' },
 
                 // Income
                 { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME' },
                 { id: 'cat_bonus', name: 'Bonus', color: '#84cc16', type: 'INCOME' },
-                { id: 'cat_investments', name: 'Investments', color: '#14b8a6', type: 'INCOME' },
+                { id: 'cat_investments', name: 'Investimentos', color: '#14b8a6', type: 'INCOME' },
 
                 // Other
                 { id: 'cat_other', name: 'Outros', color: '#6b7280', type: 'EXPENSE' }

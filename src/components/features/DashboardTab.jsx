@@ -1,14 +1,15 @@
-import { useMemo } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isAfter, isBefore } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isAfter, isBefore, parseISO } from 'date-fns';
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, PieChart, Pie
 } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Search, MoreHorizontal, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Search, MoreHorizontal, TrendingUp, TrendingDown, Filter } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { cn } from '../../lib/utils';
 
 export function DashboardTab() {
     const { data, formatCurrency } = useData();
+    const [breakdownFilter, setBreakdownFilter] = useState('ALL');
 
     // --- Derived Data Calculations ---
 
@@ -17,29 +18,113 @@ export function DashboardTab() {
         // Sort snapshots by date desc
         const sortedSnapshots = [...data.snapshots].sort((a, b) => new Date(b.date) - new Date(a.date));
 
+        const getSnapshotTotal = (snapshot) => {
+            if (!snapshot) return 0;
+            return Object.entries(snapshot.balances).reduce((total, [accId, bal]) => {
+                const acc = data.accounts.find(a => a.id === accId);
+                let rate = 1;
+                const currency = acc?.currency || 'BRL';
+                if (acc && currency !== 'BRL') {
+                    // Use rates from snapshot, or 0 if missing (conservative)
+                    rate = snapshot.rates?.[currency] || 0;
+                }
+                return total + (bal * rate);
+            }, 0);
+        };
+
         const currentSnapshot = sortedSnapshots[0];
-        const currentTotal = currentSnapshot ? Object.values(currentSnapshot.balances).reduce((a, b) => a + b, 0) : 0;
+        const currentTotal = getSnapshotTotal(currentSnapshot);
 
         // Find last month's snapshot (approx)
         const lastMonthDate = subMonths(new Date(), 1);
-        const lastMonthSnapshot = sortedSnapshots.find(s => isSameMonth(new Date(s.date), lastMonthDate));
-        // If no exact match, try finding one close or just use the next available one if it's older? 
-        // For simplicity, let's look for the most recent one BEFORE this month.
         const prevSnapshot = sortedSnapshots.find(s => isBefore(new Date(s.date), startOfMonth(new Date())));
 
-        const prevTotal = prevSnapshot ? Object.values(prevSnapshot.balances).reduce((a, b) => a + b, 0) : 0;
+        const prevTotal = getSnapshotTotal(prevSnapshot);
 
         const diff = currentTotal - prevTotal;
         const percentChange = prevTotal !== 0 ? (diff / prevTotal) * 100 : 0;
 
         return { currentTotal, percentChange, diff };
-    }, [data.snapshots]);
+    }, [data.snapshots, data.accounts]);
+
+    // 1.5 Assets by Currency
+    const assetsByCurrency = useMemo(() => {
+        const sortedSnapshots = [...data.snapshots].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const currentSnapshot = sortedSnapshots[0];
+        // Even if no snapshot, we want to show the cards with 0
+        const balances = currentSnapshot ? currentSnapshot.balances : {};
+
+        const totals = { BRL: 0, USD: 0, EUR: 0 };
+
+        Object.entries(balances).forEach(([accId, bal]) => {
+            const acc = data.accounts.find(a => a.id === accId);
+            if (acc) {
+                const currency = acc.currency || 'BRL';
+                if (totals[currency] !== undefined) {
+                    totals[currency] += bal;
+                }
+            }
+        });
+
+        // Always return BRL, USD, EUR
+        return ['BRL', 'USD', 'EUR'].map(curr => ({
+            currency: curr,
+            amount: totals[curr] || 0,
+            symbol: curr === 'BRL' ? 'R$' : (curr === 'USD' ? '$' : '€')
+        }));
+    }, [data.snapshots, data.accounts]);
+
+    // 1.6 Asset Evolution & Allocation Data
+    const { evolutionData, allocationData } = useMemo(() => {
+        const sortedSnapshots = [...data.snapshots].sort((a, b) => new Date(a.date) - new Date(b.date)); // ASC for chart
+
+        // --- Evolution (Stacked Bar) ---
+        const evoData = sortedSnapshots.map(snap => {
+            const point = {
+                date: snap.date,
+                name: format(parseISO(snap.date), 'MMM yy'),
+                fullDate: snap.date
+            };
+
+            data.accounts.forEach(acc => {
+                const bal = snap.balances[acc.id] || 0;
+                let rate = 1;
+                if (acc.currency !== 'BRL') {
+                    rate = snap.rates?.[acc.currency] || 0;
+                }
+                point[acc.id] = bal * rate; // Convert to BRL
+            });
+            return point;
+        });
+
+        // --- Allocation (Donut) ---
+        // Based on latest snapshot (last in sorted list? No, sorted is ASC, so last is latest)
+        // Wait, logic above sortedSnapshots for assetsByCurrency was DESC. Here I sorted ASC for chart.
+        // So latest is the last one.
+        const latestInfo = evoData[evoData.length - 1];
+        let allocData = [];
+
+        if (latestInfo) {
+            allocData = data.accounts.map(acc => {
+                // Get value from the processed evoData point which is already in BRL
+                const val = latestInfo[acc.id] || 0;
+                return {
+                    name: acc.name,
+                    value: val,
+                    currency: acc.currency, // just for info
+                    originalCurrency: acc.currency === 'BRL' ? 'R$' : (acc.currency === 'USD' ? '$' : '€')
+                };
+            }).filter(d => d.value > 0);
+        }
+
+        return { evolutionData: evoData, allocationData: allocData };
+    }, [data.snapshots, data.accounts]);
 
     // 2. Chart Data (2 months back + Current + 6 months forward) & Pie Data
     const { chartData, pieData } = useMemo(() => {
         const currentDate = new Date();
         const months = [];
-        const currentMonthData = { expenses: {} }; // for pie chart
+        const filteredExpenses = {}; // for pie chart
 
         // Default categories map for easy lookup
         const cats = data.categories || [];
@@ -51,13 +136,22 @@ export function DashboardTab() {
             months.push({
                 date: d,
                 name: format(d, 'MMM'),
-                fullDate: format(d, 'yyyy-MM'),
+                fullDate: format(d, 'yyyy-MM'), // Format matches default select values usually
                 expense: 0,
                 income: 0,
                 isFuture: i > 0,
                 isCurrent: i === 0
             });
         }
+
+        // Helper to add to pie if matches filter
+        const addToPie = (monthData, catId, amount) => {
+            const isMatch = breakdownFilter === 'ALL' || monthData.fullDate === breakdownFilter;
+            if (isMatch) {
+                if (!filteredExpenses[catId]) filteredExpenses[catId] = 0;
+                filteredExpenses[catId] += amount;
+            }
+        };
 
         // Fill Past & Current from Transactions
         data.transactions.forEach(t => {
@@ -71,11 +165,7 @@ export function DashboardTab() {
                     if (!monthData[catId]) monthData[catId] = 0;
                     monthData[catId] += t.amount;
 
-                    // For Pie Chart (Current Month only)
-                    if (monthData.isCurrent) {
-                        if (!currentMonthData.expenses[catId]) currentMonthData.expenses[catId] = 0;
-                        currentMonthData.expenses[catId] += t.amount;
-                    }
+                    addToPie(monthData, catId, t.amount);
 
                 } else if (t.type === 'INCOME') {
                     monthData.income += t.amount;
@@ -88,33 +178,19 @@ export function DashboardTab() {
         });
 
         // Fill Future from Fixed Items (Projections)
-        // Simple projection: if fixed item is active, add it to future months
-        // Note: This matches "Monthly" recurrence mostly. 
-        // For accurate daily/weekly recurrence we'd need complex logic.
-        // Assuming 'fixedItems' are mostly monthly or we estimate monthly cost.
         if (data.fixedItems) {
             data.fixedItems.forEach(item => {
-                // If item has no end date or end date is after... 
-                // Simplified: Add amount to all future months
                 months.filter(m => m.isFuture).forEach(m => {
-                    // Check if item should occur in this month?
-                    // For MVP: assume monthly recurrence for all fixed items
                     if (item.type === 'EXPENSE') {
                         m.expense += item.amount;
-                        // Category projection
                         const catId = item.categoryId || 'uncategorized';
                         if (!m[catId]) m[catId] = 0;
                         m[catId] += item.amount;
 
-                        // Pie Chart for Current Month (if active)
-                        if (m.isCurrent) {
-                            if (!currentMonthData.expenses[catId]) currentMonthData.expenses[catId] = 0;
-                            currentMonthData.expenses[catId] += item.amount;
-                        }
+                        addToPie(m, catId, item.amount);
 
                     } else if (item.type === 'INCOME') {
                         m.income += item.amount;
-                        // Category projection
                         const catId = item.categoryId || 'uncategorized';
                         if (!m[catId]) m[catId] = 0;
                         m[catId] += item.amount;
@@ -125,35 +201,26 @@ export function DashboardTab() {
 
         return {
             chartData: months,
-            pieData: Object.entries(currentMonthData.expenses).map(([catId, amount]) => {
+            pieData: Object.entries(filteredExpenses).map(([catId, amount]) => {
                 const cat = getCat(catId);
                 return { name: cat.name, value: amount, color: cat.color };
             })
         };
-    }, [data.transactions, data.fixedItems, data.categories]);
+    }, [data.transactions, data.fixedItems, data.categories, breakdownFilter]);
 
     // 3. Projected Net Worth (Current + Future)
     const projectionData = useMemo(() => {
         const currentTotal = netWorthStats.currentTotal;
         let runningBalance = currentTotal;
 
-        // Filter for current and future months
         const futureMonths = chartData.filter(d => d.isCurrent || d.isFuture);
-
-        // We need to re-calculate running balance starting from NOW
-        // The chartData already has projected Income/Expense for future months
 
         return futureMonths.map((month, index) => {
             if (index === 0) {
-                // Current Month: Just show current Net Worth
                 return { ...month, accumulatedBalance: currentTotal };
             }
-
-            // For subsequent months, apply the projected net flow:
-            // NewBalance = PrevBalance + (ProjectedIncome - ProjectedExpense)
             const netFlow = month.income - month.expense;
             runningBalance += netFlow;
-
             return {
                 ...month,
                 accumulatedBalance: runningBalance
@@ -227,68 +294,128 @@ export function DashboardTab() {
 
             </div>
 
-            {/* Projection Chart */}
-            <Card className="p-6 bg-white">
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900">
-                            Wealth Projection
-                        </h3>
-                        <p className="text-sm text-gray-400">Estimated Net Worth for next 6 months</p>
-                    </div>
-                </div>
+            {/* Assets by Currency */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {assetsByCurrency.map(item => (
+                    <Card key={item.currency} className="p-6 bg-white flex items-center gap-4">
+                        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold",
+                            item.currency === 'BRL' ? "bg-green-100 text-green-700" :
+                                item.currency === 'USD' ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                        )}>
+                            {item.symbol}
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{item.currency} Total</p>
+                            <h3 className="text-xl font-bold text-gray-900">
+                                {item.symbol} {item.amount.toLocaleString(item.currency === 'BRL' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                            </h3>
+                        </div>
+                    </Card>
+                ))}
+            </div>
 
-                <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={projectionData}>
-                            <defs>
-                                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                dy={10}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                tickFormatter={(value) => formatCurrency(value).replace(/\D00(?=\D*$)/, '')}
-                                width={80}
-                            />
-                            <Tooltip
-                                content={({ active, payload, label }) => {
-                                    if (active && payload && payload.length) {
-                                        return (
-                                            <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
-                                                <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{label}</p>
-                                                <p className="text-sm font-bold text-violet-600">
-                                                    {formatCurrency(payload[0].value)}
-                                                </p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey="accumulatedBalance"
-                                stroke="#8b5cf6"
-                                strokeWidth={2}
-                                fillOpacity={1}
-                                fill="url(#colorBalance)"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </Card>
+            {/* NEW: Asset Evolution & Allocation */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Stacked Area/Bar Chart - Evolution */}
+                <Card className="lg:col-span-2 p-6 bg-white min-h-[400px]">
+                    <h3 className="text-lg font-bold text-gray-900 mb-6">Asset Evolution (BRL)</h3>
+                    <div className="h-[320px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={evolutionData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                    tickFormatter={(value) => `R$${value / 1000}k`}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100 z-50">
+                                                    <p className="text-xs text-gray-500 mb-2 font-bold uppercase">{label}</p>
+                                                    {payload.map((p, i) => (
+                                                        <div key={i} className="flex justify-between gap-4 text-sm mb-1">
+                                                            <span className="font-medium" style={{ color: p.color }}>{p.name}:</span>
+                                                            <span className="font-mono text-gray-600">
+                                                                {formatCurrency(p.value)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between gap-4">
+                                                        <span className="font-bold text-gray-900">Total:</span>
+                                                        <span className="font-bold font-mono text-gray-900">
+                                                            {formatCurrency(payload.reduce((sum, p) => sum + p.value, 0))}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                {data.accounts.map((acc, index) => {
+                                    // Generate a color or use a predefined one if available? 
+                                    // Let's generate based on index or hash
+                                    const colors = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
+                                    const color = colors[index % colors.length];
+                                    return (
+                                        <Bar
+                                            key={acc.id}
+                                            dataKey={acc.id}
+                                            name={acc.name}
+                                            stackId="a"
+                                            fill={color}
+                                        />
+                                    );
+                                })}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+
+                {/* Donut Chart - Current Allocation */}
+                <Card className="lg:col-span-1 p-6 bg-white min-h-[400px] flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Asset Allocation</h3>
+                    <p className="text-xs text-gray-400 mb-6">Current distribution (BRL Eq.)</p>
+                    <div className="flex-1 min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={allocationData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={2}
+                                    dataKey="value"
+                                >
+                                    {allocationData.map((entry, index) => {
+                                        const colors = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
+                                        return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                                    })}
+                                </Pie>
+                                <Tooltip
+                                    formatter={(value, name, props) => [formatCurrency(value), name]}
+                                />
+                                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px' }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+            </div>
+
+
 
             {/* Bottom Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -305,7 +432,7 @@ export function DashboardTab() {
                     </div>
                 </Card>
 
-                {/* Main Chart (Income vs Expense) */}
+                {/* Main Chart (Income vs Expense) & Pie Chart */}
                 <Card className="lg:col-span-2 p-6 bg-white min-h-[500px]">
                     <div className="flex justify-between items-start mb-8">
                         <div>
@@ -391,33 +518,48 @@ export function DashboardTab() {
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="h-full relative">
-                            <h4 className="absolute top-0 left-0 text-sm font-bold text-gray-400 uppercase tracking-wider">Expenses Breakdown</h4>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={pieData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {pieData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(value) => formatCurrency(value)}
-                                    />
-                                    <Legend layout="vertical" align="right" verticalAlign="middle" />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <div className="h-full relative flex flex-col">
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Expenses Breakdown</h4>
+                                <select
+                                    className="text-xs border rounded px-2 py-1 text-gray-600 bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    value={breakdownFilter}
+                                    onChange={(e) => setBreakdownFilter(e.target.value)}
+                                >
+                                    <option value="ALL">All Months</option>
+                                    {chartData.map(m => (
+                                        <option key={m.fullDate} value={m.fullDate}>
+                                            {m.name} {m.isCurrent ? '(Current)' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-1 min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={pieData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {pieData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            formatter={(value) => formatCurrency(value)}
+                                        />
+                                        <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: '12px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
                 </Card >
-
             </div >
         </div >
     );

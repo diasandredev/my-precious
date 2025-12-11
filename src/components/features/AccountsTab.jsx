@@ -5,10 +5,13 @@ import { Card, Button, Input, Label, Modal } from '../ui';
 import { cn } from '../../lib/utils';
 import { format, parseISO } from 'date-fns';
 
+import { fetchExchangeRates } from '../../lib/currency';
+
 export function AccountsTab() {
     const { data, addAccount, updateAccount, deleteAccount, addSnapshot, deleteSnapshot, formatCurrency } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
+    const [isLoadingRates, setIsLoadingRates] = useState(false);
 
     // Balance update state
     const [isUpdateMode, setIsUpdateMode] = useState(false);
@@ -30,11 +33,27 @@ export function AccountsTab() {
         return [...data.snapshots].sort((a, b) => new Date(b.date) - new Date(a.date));
     }, [data.snapshots]);
 
+    const latestRates = useMemo(() => {
+        return sortedSnapshots[0] ? sortedSnapshots[0].rates || {} : {};
+    }, [sortedSnapshots]);
+
     const latestBalances = useMemo(() => {
         return sortedSnapshots[0] ? sortedSnapshots[0].balances : {};
     }, [sortedSnapshots]);
 
-    const totalNetWorth = Object.values(latestBalances).reduce((a, b) => a + b, 0);
+    const totalNetWorth = useMemo(() => {
+        return Object.entries(latestBalances).reduce((total, [accountId, balance]) => {
+            const account = data.accounts.find(a => a.id === accountId);
+            if (!account) return total;
+
+            const currency = account.currency || 'BRL';
+            let rate = 1;
+            if (currency !== 'BRL') {
+                rate = latestRates[currency] || 0;
+            }
+            return total + (balance * rate);
+        }, 0);
+    }, [latestBalances, data.accounts, latestRates]);
 
     const totalPages = Math.ceil(sortedSnapshots.length / ITEMS_PER_PAGE);
 
@@ -90,13 +109,28 @@ export function AccountsTab() {
         setIsUpdateMode(true);
     };
 
-    const saveBalances = () => {
-        addSnapshot({
-            date: selectedDate,
-            balances: newBalances
-        });
-        setIsUpdateMode(false);
-        // alert('Balances updated!');
+    const saveBalances = async () => {
+        setIsLoadingRates(true);
+        try {
+            // Identify active currencies from data.accounts
+            const activeCurrencies = data.accounts
+                .map(acc => acc.currency)
+                .filter(c => c && c !== 'BRL'); // Filter out undefined/BRL
+
+            const rates = await fetchExchangeRates(selectedDate, activeCurrencies);
+
+            addSnapshot({
+                date: selectedDate,
+                balances: newBalances,
+                rates: rates
+            });
+            setIsUpdateMode(false);
+        } catch (error) {
+            console.error("Error saving snapshot:", error);
+            alert("Failed to fetch exchange rates. Snapshot not saved.");
+        } finally {
+            setIsLoadingRates(false);
+        }
     };
 
     const getIcon = (type) => {
@@ -140,9 +174,9 @@ export function AccountsTab() {
                                 />
                             </div>
                             <Button onClick={() => setIsUpdateMode(false)} variant="ghost">Cancel</Button>
-                            <Button onClick={saveBalances} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 ring-0 focus:ring-0">
+                            <Button onClick={saveBalances} disabled={isLoadingRates} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 ring-0 focus:ring-0">
                                 <Save size={18} className="mr-2" />
-                                Save Snapshot
+                                {isLoadingRates ? 'Saving...' : 'Save Snapshot'}
                             </Button>
                         </>
                     )}
@@ -207,7 +241,19 @@ export function AccountsTab() {
                                                     placeholder="0.00"
                                                 />
                                             ) : (
-                                                formatCurrency ? formatCurrency(latestBalances[account.id] || 0) : (latestBalances[account.id] || 0)
+                                                <div>
+                                                    <div>
+                                                        {(account.currency || 'BRL') === 'BRL'
+                                                            ? (formatCurrency ? formatCurrency(latestBalances[account.id] || 0) : (latestBalances[account.id] || 0))
+                                                            : new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(latestBalances[account.id] || 0)
+                                                        }
+                                                    </div>
+                                                    {(account.currency || 'BRL') !== 'BRL' && (
+                                                        <div className="text-xs text-gray-400">
+                                                            ≈ {formatCurrency((latestBalances[account.id] || 0) * (latestRates[account.currency] || 0))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
                                         </td>
                                         <td className="p-4 text-right">
@@ -271,7 +317,15 @@ export function AccountsTab() {
                                     <div className="flex items-center gap-3">
                                         <div className="text-right">
                                             <div className="text-sm font-bold text-gray-900">
-                                                {formatCurrency(Object.values(snap.balances).reduce((a, b) => a + b, 0))}
+                                                {formatCurrency(Object.entries(snap.balances).reduce((total, [accId, bal]) => {
+                                                    const acc = data.accounts.find(a => a.id === accId);
+                                                    let r = 1;
+                                                    const currency = acc?.currency || 'BRL';
+                                                    if (acc && currency !== 'BRL') {
+                                                        r = snap.rates?.[currency] || 0;
+                                                    }
+                                                    return total + (bal * r);
+                                                }, 0))}
                                             </div>
                                         </div>
                                         <Button

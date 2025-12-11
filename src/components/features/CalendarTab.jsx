@@ -7,7 +7,10 @@ import { Button, Input, Label, Modal, Card } from '../ui';
 import { cn } from '../../lib/utils';
 import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 
+import { categorizeTransaction } from '../../lib/categorizer';
+
 export function CalendarTab() {
+
     const { data, addFixedItem, deleteFixedItem, addTransaction, deleteTransaction, updateFixedItem, updateTransaction } = useData();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,7 +26,6 @@ export function CalendarTab() {
         date: new Date().toISOString().split('T')[0], // For one-time
         startDate: new Date().toISOString().split('T')[0], // For recurring
         endDate: '', // Optional end date
-        frequency: 'MONTHLY', // 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'
         frequency: 'MONTHLY', // 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'
         type: 'EXPENSE', // 'INCOME', 'EXPENSE'
         categoryId: '', // New category field
@@ -199,57 +201,8 @@ export function CalendarTab() {
         if (window.confirm(`Found ${transactions.length} expenses to import. Proceed?`)) {
             let importedCount = 0;
 
-            // Category Mapping
-            const categoryMap = {
-                // Specific Descriptions (Priority)
-                'NETFLIX': 'Assinatura',
-                'MELIMAIS': 'Assinatura',
-                'SPOTIFY': 'Assinatura',
-                'SMILES CLUBE SMILES': 'Assinatura',
-                'LOJA GAMERS CLUB': 'Assinatura',
-                'AMAZON BR': 'Compras',
-                'AIR EUROPA': 'Viagem',
-                'LATAM': 'Viagem',
-
-                // Category Column Matches
-                'T&E Companhia aérea': 'Viagem',
-                'T&E': 'Viagem',
-                'Supermercados / Mercearia / Padarias / Lojas de Conveniência': 'Supermercado',
-                'Transporte': 'Transporte',
-                'TV por assinatura / Serviços de rádio': 'Assinatura',
-                'Entretenimento': 'Assinatura',
-                'Restaurantes / Lanchonetes / Bares': 'Restaurante',
-                'Farmácias': 'Health',
-                'Serviços de telecomunicações': 'Internet',
-                'Vestuário / Roupas': 'Vestuario',
-                'Departamento / Desconto': 'Compras'
-            };
-
             transactions.forEach(t => {
-                let categoryId = 'cat_other'; // Default
-
-                // Helper to search map
-                const findCategory = (str) => {
-                    for (const [key, val] of Object.entries(categoryMap)) {
-                        if (str.toUpperCase().includes(key.toUpperCase())) {
-                            return val;
-                        }
-                    }
-                    return null;
-                };
-
-                // 1. Check Description (Highest Priority)
-                let mappedName = findCategory(t.description);
-
-                // 2. Check Original Category
-                if (!mappedName) {
-                    mappedName = findCategory(t.categoryOriginal);
-                }
-
-                if (mappedName) {
-                    const catMatch = data.categories?.find(c => c.name.toLowerCase() === mappedName.toLowerCase());
-                    if (catMatch) categoryId = catMatch.id;
-                }
+                const categoryId = categorizeTransaction(t.description, t.categoryOriginal, data.categories);
 
                 addTransaction({
                     title: t.description,
@@ -410,7 +363,7 @@ export function CalendarTab() {
                                 <tr>
                                     <th className="px-4 py-3 text-left font-medium">Date</th>
                                     <th className="px-4 py-3 text-left font-medium">Description</th>
-                                    <th className="px-4 py-3 text-left font-medium">Category</th>
+                                    <th className="px-4 py-3 text-center font-medium">Category</th>
                                     <th className="px-4 py-3 text-left font-medium">Type</th>
                                     <th className="px-4 py-3 text-right font-medium">In</th>
                                     <th className="px-4 py-3 text-right font-medium">Out</th>
@@ -435,10 +388,21 @@ export function CalendarTab() {
                                                 {item.name}
                                                 {item.isVariable && <span className="ml-2 text-[10px] bg-blue-500/10 text-blue-500 px-1 py-0.5 rounded">VAR</span>}
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded inline-block">
-                                                    {(data.categories?.find(c => c.id === item.categoryId)?.name) || 'Uncategorized'}
-                                                </span>
+                                            <td className="px-4 py-3 text-center">
+                                                {(() => {
+                                                    const cat = data.categories?.find(c => c.id === item.categoryId);
+                                                    return (
+                                                        <span
+                                                            className="text-xs px-2 py-1 rounded inline-block font-medium"
+                                                            style={{
+                                                                color: cat ? cat.color : '#6b7280',
+                                                                backgroundColor: cat ? `${cat.color}1A` : '#f3f4f6'
+                                                            }}
+                                                        >
+                                                            {cat ? cat.name : 'Uncategorized'}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={cn(

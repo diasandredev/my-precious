@@ -5,6 +5,7 @@ import { AccountsTab } from './components/features/AccountsTab';
 import { CalendarTab } from './components/features/CalendarTab';
 import { DashboardTab } from './components/features/DashboardTab';
 import { SettingsTab } from './components/features/SettingsTab';
+import { ProjectionsTab } from './components/features/ProjectionsTab';
 import { Sidebar } from './components/layout/Sidebar';
 import { LoadExampleData } from './components/LoadExampleData';
 
@@ -17,6 +18,8 @@ function App() {
         return <DashboardTab />;
       case 'accounts':
         return <AccountsTab />;
+      case 'projections':
+        return <ProjectionsTab />;
       case 'calendar':
         return <CalendarTab />;
       case 'settings':
