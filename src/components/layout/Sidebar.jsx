@@ -1,8 +1,18 @@
 import { LayoutDashboard, Wallet, TrendingUp, Calendar as CalendarIcon, Bell, Settings, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import logo from '../../assets/logo.png';
+import { logout } from '../../services/auth';
 
 export function Sidebar({ activeTab, onTabChange }) {
+    const handleLogout = async () => {
+        try {
+            await logout();
+            window.location.reload(); // Reload to clear state/context
+        } catch (error) {
+            console.error("Logout failed", error);
+        }
+    };
+
     const menuItems = {
         main: [
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -68,10 +78,12 @@ export function Sidebar({ activeTab, onTabChange }) {
                 </div>
             </div>
 
-            <div className="p-6 border-t border-gray-50">
-                {/* Monthly Cashback Removed */}
-
-                <button className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors w-full px-2">
+            <div className="p-6 border-t border-gray-50 space-y-2">
+                {/* Sync Status Button */}
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors w-full px-2 py-2 rounded-md hover:bg-gray-50"
+                >
                     <LogOut size={18} />
                     <span>Log out</span>
                 </button>

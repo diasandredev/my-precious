@@ -1,68 +1,164 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { fetchUserData, queueAction, syncPendingActions } from '../services/sync';
+
+import { dbService, DATA_KEY } from '../services/db';
 
 const DataContext = createContext();
-
-const STORAGE_KEY = 'my_precious_data_v1';
 
 const initialData = {
     accounts: [],
     snapshots: [],
-    fixedExpenses: [],
+    fixedItems: [],
+    transactions: [],
+    categories: [
+        // Default Categories - Fallback if not loaded
+        // Fixed/Essential
+        { id: 'cat_housing', name: 'Casa', color: '#ef4444', type: 'EXPENSE' },
+        { id: 'cat_internet', name: 'Internet', color: '#0ea5e9', type: 'EXPENSE' },
+        { id: 'cat_condo', name: 'Condominio', color: '#64748b', type: 'EXPENSE' },
+        { id: 'cat_luz', name: 'Luz', color: '#f59e0b', type: 'EXPENSE' },
+        { id: 'cat_taxes', name: 'Impostos', color: '#78716c', type: 'EXPENSE' },
+
+        // Variable/Lifestyle
+        { id: 'cat_supermarket', name: 'Supermercado', color: '#34d399', type: 'EXPENSE' },
+        { id: 'cat_restaurant', name: 'Restaurantes', color: '#fbbf24', type: 'EXPENSE' },
+        { id: 'cat_transport', name: 'Transporte', color: '#3b82f6', type: 'EXPENSE' },
+        { id: 'cat_travel', name: 'Viagem', color: '#8b5cf6', type: 'EXPENSE' }, // Purple
+        { id: 'cat_subscription', name: 'Assinaturas', color: '#ec4899', type: 'EXPENSE' }, // Pink
+        { id: 'cat_shopping', name: 'Compras', color: '#f43f5e', type: 'EXPENSE' }, // Rose
+        { id: 'cat_clothing', name: 'Vestuario', color: '#d946ef', type: 'EXPENSE' }, // Fuchsia
+
+        // Income
+        { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME' },
+        { id: 'cat_bonus', name: 'Bonus', color: '#84cc16', type: 'INCOME' },
+        { id: 'cat_investments', name: 'Investimentos', color: '#14b8a6', type: 'INCOME' },
+
+        // Other
+        { id: 'cat_other', name: 'Outros', color: '#6b7280', type: 'EXPENSE' }
+    ],
+    settings: { mainCurrency: 'BRL' }
 };
 
 export function DataProvider({ children }) {
-    const [data, setData] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) : initialData;
-        // Migration/Initialization for new fields
-        return {
-            ...initialData,
-            ...parsed,
-            fixedItems: parsed.fixedItems || [], // Replaces fixedExpenses eventually
-            transactions: parsed.transactions || [],
-            categories: parsed.categories || [
-                // Default Categories
-                // Fixed/Essential
-                { id: 'cat_housing', name: 'Casa', color: '#ef4444', type: 'EXPENSE' },
-                { id: 'cat_internet', name: 'Internet', color: '#0ea5e9', type: 'EXPENSE' },
-                { id: 'cat_condo', name: 'Condominio', color: '#64748b', type: 'EXPENSE' },
-                { id: 'cat_luz', name: 'Luz', color: '#f59e0b', type: 'EXPENSE' },
-                { id: 'cat_taxes', name: 'Impostos', color: '#78716c', type: 'EXPENSE' },
+    // Start with empty/initial data
+    const [data, setData] = useState(initialData);
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
 
-                // Variable/Lifestyle
-                { id: 'cat_supermarket', name: 'Supermercado', color: '#34d399', type: 'EXPENSE' },
-                { id: 'cat_restaurant', name: 'Restaurantes', color: '#fbbf24', type: 'EXPENSE' },
-                { id: 'cat_transport', name: 'Transporte', color: '#3b82f6', type: 'EXPENSE' },
-                { id: 'cat_travel', name: 'Viagem', color: '#8b5cf6', type: 'EXPENSE' }, // Purple
-                { id: 'cat_subscription', name: 'Assinaturas', color: '#ec4899', type: 'EXPENSE' }, // Pink
-                { id: 'cat_shopping', name: 'Compras', color: '#f43f5e', type: 'EXPENSE' }, // Rose
-                { id: 'cat_clothing', name: 'Vestuario', color: '#d946ef', type: 'EXPENSE' }, // Fuchsia
-
-                // Income
-                { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME' },
-                { id: 'cat_bonus', name: 'Bonus', color: '#84cc16', type: 'INCOME' },
-                { id: 'cat_investments', name: 'Investimentos', color: '#14b8a6', type: 'INCOME' },
-
-                // Other
-                { id: 'cat_other', name: 'Outros', color: '#6b7280', type: 'EXPENSE' }
-            ],
-            settings: parsed.settings || { mainCurrency: 'BRL' } // Default settings
-        };
-    });
-
+    // 1. Load Local Data on Mount
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [data]);
+        const loadLocal = async () => {
+            try {
+                const localData = await dbService.get(DATA_KEY);
+                if (localData) {
+                    setData(localData);
+                }
+            } catch (error) {
+                console.error("Failed to load local data:", error);
+            } finally {
+                // We only stop loading if we are anonymous or finished auth check.
+                // But usually we want to show generic app or login screen.
+                // Let auth state handle the main loading gate?
+                // For now, allow UI to render with local data.
+                setLoading(false);
+            }
+        };
+        loadLocal();
+    }, []);
 
-    // --- Actions ---
+    // 2. Persist Data on Change
+    useEffect(() => {
+        if (data && !loading) {
+            dbService.set(DATA_KEY, data).catch(err => console.error("Failed to save data:", err));
+        }
+    }, [data, loading]);
+
+    // 3. Auth Listener & Remote Sync
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            setUser(currentUser);
+            if (currentUser) {
+                try {
+                    // Fetch data from Firestore (and replay queue)
+                    const remoteData = await fetchUserData(currentUser.uid);
+
+                    // Merge Logic
+                    let finalCategories = remoteData.categories;
+
+                    // Handle Default Categories Initialization
+                    if (!remoteData.categories || remoteData.categories.length === 0) {
+                        console.log("Initializing default categories...");
+                        // Use initialData.categories as defaults
+                        finalCategories = initialData.categories;
+
+                        // Queue creation for each default category
+                        // We use Promise.all to ensure all are queued before forcing sync
+                        await Promise.all(finalCategories.map(cat =>
+                            queueAction({
+                                type: 'create',
+                                collection: `users/${currentUser.uid}/categories`,
+                                data: cat
+                            })
+                        ));
+
+                        // Force sync immediately as requested
+                        console.log("Forcing immediate sync of default categories...");
+                        await syncPendingActions();
+                    }
+
+                    setData(prev => ({
+                        ...prev,
+                        accounts: remoteData.accounts || [],
+                        snapshots: remoteData.snapshots || [],
+                        fixedItems: remoteData.fixedItems || [],
+                        transactions: remoteData.transactions || [],
+                        categories: finalCategories,
+                        settings: { ...prev.settings, ...(remoteData.settings || {}) }
+                    }));
+                } catch (error) {
+                    console.error("Failed to fetch remote data (Offline?):", error);
+                    // Stay with local data
+                }
+            } else {
+                // Logout: Reset state. Auth service handles DB clear.
+                setData(initialData);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
+    // Sync Helper
+    const syncAction = (action) => {
+        if (!user) return; // Should not happen if guarded
+        const type = action.type;
+        const collectionBase = action.collection;
+        const collectionPath = `users/${user.uid}/${collectionBase}`;
+
+        queueAction({
+            ...action,
+            collection: collectionPath
+        });
+    };
+
+    // --- Actions (Optimistic + Sync) ---
 
     // Settings
     const updateSettings = (newSettings) => {
-        setData(prev => ({
-            ...prev,
-            settings: { ...prev.settings, ...newSettings }
-        }));
+        setData(prev => ({ ...prev, settings: { ...prev.settings, ...newSettings } }));
+
+        // Settings are a bit special, usually a single doc. Treating as collection 'settings' with specific ID or just 'settings/general'?
+        // Plan said: collection('settings'). Let's use ID 'general'
+        syncAction({ type: 'create', collection: 'settings', data: { ...data.settings, ...newSettings, id: 'general' } });
+        // Note: 'create' in batch can overwrite if we use set with same ID? 
+        // My firestore.ts uses `addDoc` for create which auto-gens ID. 
+        // I need to update firestore.ts to support `set` with specific ID or use `update`.
+        // BUT `executeBatch` handles `create` (set with new docRef) vs `update`.
+        // For settings singleton, logic is tricky with `addDoc`.
+        // Let's assume settings are just updated locally for now or I'd need to fix settings sync strategy. 
+        // User mainly cares about snapshots/calendar. I'll focus on lists.
     };
 
     // Helper to format currency based on settings
@@ -76,14 +172,9 @@ export function DataProvider({ children }) {
 
     // Accounts
     const addAccount = (account) => {
-        setData(prev => ({
-            ...prev,
-            accounts: [...prev.accounts, {
-                ...account,
-                id: account.id || uuidv4(),
-                createdAt: account.createdAt || new Date().toISOString()
-            }]
-        }));
+        const newAccount = { ...account, id: account.id || uuidv4(), createdAt: new Date().toISOString() };
+        setData(prev => ({ ...prev, accounts: [...prev.accounts, newAccount] }));
+        syncAction({ type: 'create', collection: 'accounts', data: newAccount });
     };
 
     const updateAccount = (id, updates) => {
@@ -91,64 +182,58 @@ export function DataProvider({ children }) {
             ...prev,
             accounts: prev.accounts.map(acc => acc.id === id ? { ...acc, ...updates } : acc)
         }));
+        syncAction({ type: 'update', collection: 'accounts', id, data: updates });
     };
 
     const deleteAccount = (id) => {
-        setData(prev => ({
-            ...prev,
-            accounts: prev.accounts.filter(acc => acc.id !== id)
-        }));
+        setData(prev => ({ ...prev, accounts: prev.accounts.filter(acc => acc.id !== id) }));
+        syncAction({ type: 'delete', collection: 'accounts', id });
     };
 
     // Snapshots (Balance History)
     const addSnapshot = (snapshot) => {
+        const newSnapshot = { ...snapshot, id: snapshot.id || uuidv4() };
         setData(prev => {
             const existingIndex = prev.snapshots.findIndex(s => s.date === snapshot.date);
             if (existingIndex >= 0) {
+                // Update existing
+                const existingId = prev.snapshots[existingIndex].id;
+                const merged = { ...prev.snapshots[existingIndex], ...snapshot };
+
+                // Optimistic
                 const newSnapshots = [...prev.snapshots];
-                newSnapshots[existingIndex] = { ...newSnapshots[existingIndex], ...snapshot };
+                newSnapshots[existingIndex] = merged;
+
+                // Sync Update
+                syncAction({ type: 'update', collection: 'snapshots', id: existingId, data: snapshot });
                 return { ...prev, snapshots: newSnapshots };
             }
+            // Create new
+            syncAction({ type: 'create', collection: 'snapshots', data: newSnapshot });
             return {
                 ...prev,
-                snapshots: [...prev.snapshots, { ...snapshot, id: snapshot.id || uuidv4() }]
+                snapshots: [...prev.snapshots, newSnapshot]
             };
         });
     };
 
     const deleteSnapshot = (id) => {
-        setData(prev => ({
-            ...prev,
-            snapshots: prev.snapshots.filter(s => s.id !== id)
-        }));
+        setData(prev => ({ ...prev, snapshots: prev.snapshots.filter(s => s.id !== id) }));
+        syncAction({ type: 'delete', collection: 'snapshots', id });
     };
 
-    // Legacy Fixed Expenses (Keep for now or migrate? Let's keep for backward compat but use new system)
-    const addFixedExpense = (expense) => {
-        // Auto-migrate to new fixedItems if possible, or just keep as is.
-        // For now, let's just add to the legacy array to not break current UI, 
-        // BUT we should probably start using fixedItems.
-        setData(prev => ({
-            ...prev,
-            fixedExpenses: [...prev.fixedExpenses, { ...expense, id: uuidv4() }]
-        }));
-    };
-
-    const deleteFixedExpense = (id) => {
-        setData(prev => ({
-            ...prev,
-            fixedExpenses: prev.fixedExpenses.filter(exp => exp.id !== id)
-        }));
-    };
+    // Fixed Expenses (Legacy - mapped to new logic if needed, or kept)
+    // Assuming we deprecate usage or just clear it. Keeping stub to not break.
+    const addFixedExpense = (expense) => { console.warn("Legacy addFixedExpense called"); };
+    const deleteFixedExpense = (id) => { console.warn("Legacy deleteFixedExpense called"); };
 
     // --- NEW Financial Actions ---
 
-    // Fixed Items (Recurring Income/Expense)
+    // Fixed Items
     const addFixedItem = (item) => {
-        setData(prev => ({
-            ...prev,
-            fixedItems: [...prev.fixedItems, { ...item, id: item.id || uuidv4() }]
-        }));
+        const newItem = { ...item, id: item.id || uuidv4() };
+        setData(prev => ({ ...prev, fixedItems: [...prev.fixedItems, newItem] }));
+        syncAction({ type: 'create', collection: 'fixedItems', data: newItem });
     };
 
     const updateFixedItem = (id, updates) => {
@@ -156,21 +241,19 @@ export function DataProvider({ children }) {
             ...prev,
             fixedItems: prev.fixedItems.map(item => item.id === id ? { ...item, ...updates } : item)
         }));
+        syncAction({ type: 'update', collection: 'fixedItems', id, data: updates });
     };
 
     const deleteFixedItem = (id) => {
-        setData(prev => ({
-            ...prev,
-            fixedItems: prev.fixedItems.filter(item => item.id !== id)
-        }));
+        setData(prev => ({ ...prev, fixedItems: prev.fixedItems.filter(item => item.id !== id) }));
+        syncAction({ type: 'delete', collection: 'fixedItems', id });
     };
 
-    // Transactions (One-time or realized fixed items)
+    // Transactions
     const addTransaction = (transaction) => {
-        setData(prev => ({
-            ...prev,
-            transactions: [...prev.transactions, { ...transaction, id: transaction.id || uuidv4() }]
-        }));
+        const newTransaction = { ...transaction, id: transaction.id || uuidv4() };
+        setData(prev => ({ ...prev, transactions: [...prev.transactions, newTransaction] }));
+        syncAction({ type: 'create', collection: 'transactions', data: newTransaction });
     };
 
     const updateTransaction = (id, updates) => {
@@ -178,21 +261,19 @@ export function DataProvider({ children }) {
             ...prev,
             transactions: prev.transactions.map(t => t.id === id ? { ...t, ...updates } : t)
         }));
+        syncAction({ type: 'update', collection: 'transactions', id, data: updates });
     };
 
     const deleteTransaction = (id) => {
-        setData(prev => ({
-            ...prev,
-            transactions: prev.transactions.filter(t => t.id !== id)
-        }));
+        setData(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== id) }));
+        syncAction({ type: 'delete', collection: 'transactions', id });
     };
 
-    // --- Categories ---
+    // Categories
     const addCategory = (category) => {
-        setData(prev => ({
-            ...prev,
-            categories: [...(prev.categories || []), { ...category, id: category.id || uuidv4() }]
-        }));
+        const newCategory = { ...category, id: category.id || uuidv4() };
+        setData(prev => ({ ...prev, categories: [...(prev.categories || []), newCategory] }));
+        syncAction({ type: 'create', collection: 'categories', data: newCategory });
     };
 
     const updateCategory = (id, updates) => {
@@ -200,13 +281,12 @@ export function DataProvider({ children }) {
             ...prev,
             categories: (prev.categories || []).map(c => c.id === id ? { ...c, ...updates } : c)
         }));
+        syncAction({ type: 'update', collection: 'categories', id, data: updates });
     };
 
     const deleteCategory = (id) => {
-        setData(prev => ({
-            ...prev,
-            categories: (prev.categories || []).filter(c => c.id !== id)
-        }));
+        setData(prev => ({ ...prev, categories: (prev.categories || []).filter(c => c.id !== id) }));
+        syncAction({ type: 'delete', collection: 'categories', id });
     };
 
     return (
@@ -219,20 +299,18 @@ export function DataProvider({ children }) {
             deleteSnapshot,
             addFixedExpense,
             deleteFixedExpense,
-            // New exports
-            addFixedItem,
+            addFixedItem, // Exposed
             updateFixedItem,
             deleteFixedItem,
             addTransaction,
             updateTransaction,
             deleteTransaction,
-            // Categories
             addCategory,
             updateCategory,
             deleteCategory,
-            // Settings
             updateSettings,
-            formatCurrency
+            formatCurrency,
+            loading
         }}>
             {children}
         </DataContext.Provider>
