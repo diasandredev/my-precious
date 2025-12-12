@@ -118,7 +118,17 @@ export function AccountsTab() {
                 .map(acc => acc.currency)
                 .filter(c => c && c !== 'BRL'); // Filter out undefined/BRL
 
-            const rates = await fetchExchangeRates(selectedDate, activeCurrencies);
+            // Check if we already have rates for this date
+            const existingSnapshot = data.snapshots.find(s => s.date === selectedDate);
+            const hasAllRates = activeCurrencies.every(c => existingSnapshot?.rates?.[c]);
+
+            let rates;
+            if (hasAllRates) {
+                console.log("Using existing rates from snapshot");
+                rates = existingSnapshot.rates;
+            } else {
+                rates = await fetchExchangeRates(selectedDate, activeCurrencies);
+            }
 
             addSnapshot({
                 date: selectedDate,
@@ -128,7 +138,7 @@ export function AccountsTab() {
             setIsUpdateMode(false);
         } catch (error) {
             console.error("Error saving snapshot:", error);
-            alert("Failed to fetch exchange rates. Snapshot not saved.");
+            alert("Failed to update snapshot (Rate Fetch Error).");
         } finally {
             setIsLoadingRates(false);
         }
