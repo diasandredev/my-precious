@@ -24,25 +24,21 @@ export function Login() {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50/50 p-4">
             <Card className="w-full max-w-md shadow-xl border-gray-100/50 bg-white/80 backdrop-blur-xl">
-                <CardHeader className="space-y-4 text-center">
-                    <div className="flex justify-center mb-4">
-                        <img src={logo} alt="Precious" className="h-12 w-auto" />
+                <CardHeader className="space-y-4 text-center pb-2">
+                    <div className="flex justify-center mb-8 mt-4">
+                        <img src={logo} alt="Precious" className="h-32 w-auto animate-in zoom-in-50 duration-500" />
                     </div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
-                    <CardDescription>
-                        Sign in to your account to continue
-                    </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6 pb-12 px-12">
                     {error && (
-                        <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                        <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm text-center">
                             {error}
                         </div>
                     )}
                     <Button
                         variant="default"
                         size="lg"
-                        className="w-full h-12 text-base font-medium transition-all"
+                        className="w-full h-12 text-base font-medium transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5"
                         onClick={handleLogin}
                         disabled={isLoading}
                     >
@@ -56,10 +52,7 @@ export function Login() {
                         Sign in with Google
                     </Button>
                 </CardContent>
-                <CardFooter className="text-center text-sm text-muted-foreground mt-4">
-                    By clicking continue, you agree to our Terms of Service and Privacy Policy.
-                </CardFooter>
             </Card>
-        </div>
+        </div >
     );
 }

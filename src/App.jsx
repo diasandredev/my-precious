@@ -12,7 +12,7 @@ import { onAuthChange } from './services/auth';
 import { Loader2 } from 'lucide-react';
 
 import { startSyncScheduler, stopSyncScheduler } from './services/sync';
-import { SyncStatus } from './components/features/SyncStatus';
+
 
 // ... (existing imports)
 
@@ -84,9 +84,6 @@ function App() {
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="flex-1 overflow-hidden h-screen relative">
-        <div className="absolute top-6 right-8 z-50">
-          <SyncStatus />
-        </div>
         <div className="h-full w-full overflow-auto p-8">
           {renderContent()}
         </div>

@@ -8,6 +8,7 @@ import { cn } from '../../lib/utils';
 import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 
 import { categorizeTransaction } from '../../lib/categorizer';
+import { SyncStatus } from './SyncStatus';
 
 export function CalendarTab() {
 
@@ -257,6 +258,7 @@ export function CalendarTab() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <SyncStatus />
                     <div className="text-right hidden md:block">
                         <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Balance</div>
                         <div className={cn("text-xl font-bold font-mono", balance >= 0 ? "text-green-500" : "text-red-500")}>

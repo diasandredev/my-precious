@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { format, parseISO } from 'date-fns';
 
 import { fetchExchangeRates } from '../../lib/currency';
+import { SyncStatus } from './SyncStatus';
 
 export function AccountsTab() {
     const { data, addAccount, updateAccount, deleteAccount, addSnapshot, deleteSnapshot, formatCurrency } = useData();
@@ -150,7 +151,8 @@ export function AccountsTab() {
                     <p className="text-gray-500">Manage your asset sources and track their value.</p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <SyncStatus />
                     {!isUpdateMode ? (
                         <>
                             <Button onClick={handleUpdateBalances} variant="outline" className="border-gray-200">
