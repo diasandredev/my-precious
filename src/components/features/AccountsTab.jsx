@@ -441,6 +441,9 @@ export function AccountsTab() {
                             <option value="USD">USD ($)</option>
                             <option value="EUR">EUR (€)</option>
                             <option value="BTC">BTC (₿)</option>
+                            <option value="ETH">ETH (Ξ)</option>
+                            <option value="BNB">BNB (BNB)</option>
+                            <option value="XRP">XRP (XRP)</option>
                         </select>
                     </div>
 
