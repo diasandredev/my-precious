@@ -257,7 +257,12 @@ export function AccountsTab() {
                                                     <div>
                                                         {(account.currency || 'BRL') === 'BRL'
                                                             ? (formatCurrency ? formatCurrency(latestBalances[account.id] || 0) : (latestBalances[account.id] || 0))
-                                                            : new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(latestBalances[account.id] || 0)
+                                                            : new Intl.NumberFormat('en-US', {
+                                                                style: 'currency',
+                                                                currency: account.currency,
+                                                                minimumFractionDigits: ['BTC', 'ETH', 'BNB', 'XRP'].includes(account.currency) ? 4 : 2,
+                                                                maximumFractionDigits: ['BTC', 'ETH', 'BNB', 'XRP'].includes(account.currency) ? 4 : 2
+                                                            }).format(latestBalances[account.id] || 0)
                                                         }
                                                     </div>
                                                     {(account.currency || 'BRL') !== 'BRL' && (

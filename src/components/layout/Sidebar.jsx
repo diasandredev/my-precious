@@ -30,15 +30,14 @@ export function Sidebar({ activeTab, onTabChange }) {
         <button
             onClick={() => onTabChange(item.id)}
             className={cn(
-                "flex items-center gap-3 px-4 py-3 w-full text-sm font-medium transition-colors rounded-xl mx-2 mb-1",
+                "flex items-center gap-3 px-6 py-3 w-full text-sm transition-all duration-200 relative",
                 isActive
-                    ? "bg-primary/5 text-primary"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-gray-100 text-black font-bold border-l-4 border-black"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50 font-medium border-l-4 border-transparent"
             )}
         >
-            <item.icon size={20} className={isActive ? "text-primary" : "text-gray-400"} />
+            <item.icon size={20} className={isActive ? "text-black" : "text-gray-400"} strokeWidth={isActive ? 2.5 : 2} />
             <span>{item.label}</span>
-            {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
         </button>
     );
 

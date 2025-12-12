@@ -74,9 +74,48 @@ export function DashboardTab() {
         }));
     }, [data.snapshots, data.accounts]);
 
-    // 1.6 Asset Evolution & Allocation Data
-    const { evolutionData, allocationData } = useMemo(() => {
+    // Helper for consistent colors
+    const getAccountColor = (account, index) => {
+        // Specific colors for known currencies
+        if (account.currency === 'BTC') return '#190E4F';
+        if (account.currency === 'ETH') return '#e66eacff';
+        if (account.currency === 'BNB') return '#f0d14bff';
+        if (account.currency === 'XRP') return '#49D49F';
+
+        // Specific colors for known Banks/Services (Case insensitive check)
+        const name = account.name.toLowerCase();
+        if (name.includes('nubank')) return '#715892ff';
+        if (name.includes('wise')) return '#66B783';
+        if (name.includes('itau') || name.includes('itaú')) return '#F68A3C';
+        if (name.includes('xp')) return '#ec6462ff';
+        if (name.includes('nomad')) return '#EEB044';
+        if (name.includes('c6')) return '#33658A';
+        // Refined Fallback palette - drastically different hues
+        const colors = [
+            '#0ea5e9', // Sky 500 (Blue)
+            '#22c55e', // Green 500
+            '#ef4444', // Red 500
+            '#eab308', // Yellow 500
+            '#a855f7', // Purple 500
+            '#ec4899', // Pink 500
+            '#f97316', // Orange 500
+            '#14b8a6', // Teal 500
+            '#6366f1', // Indigo 500
+            '#84cc16', // Lime 500
+            '#f43f5e', // Rose 500
+            '#06b6d4', // Cyan 500
+            '#d946ef', // Fuchsia 500
+            '#64748b', // Slate 500
+        ];
+        return colors[index % colors.length];
+    };
+
+    // 1.6 Asset Evolution & Allocation Data (General & Crypto)
+    const { evolutionData, allocationData, cryptoStats } = useMemo(() => {
         const sortedSnapshots = [...data.snapshots].sort((a, b) => new Date(a.date) - new Date(b.date)); // ASC for chart
+
+        // Helper to check if is crypto
+        const isCrypto = (acc) => ['BTC', 'ETH', 'BNB', 'XRP'].includes(acc.currency) || acc.type === 'Crypto';
 
         // --- Evolution (Stacked Bar) ---
         const evoData = sortedSnapshots.map(snap => {
@@ -85,6 +124,7 @@ export function DashboardTab() {
                 name: format(parseISO(snap.date), 'MMM yy'),
                 fullDate: snap.date
             };
+            const cryptoPoint = { ...point }; // For crypto only chart
 
             data.accounts.forEach(acc => {
                 const bal = snap.balances[acc.id] || 0;
@@ -92,33 +132,71 @@ export function DashboardTab() {
                 if (acc.currency !== 'BRL') {
                     rate = snap.rates?.[acc.currency] || 0;
                 }
-                point[acc.id] = bal * rate; // Convert to BRL
+                const valueBRL = bal * rate;
+                point[acc.id] = valueBRL;
+
+                if (isCrypto(acc)) {
+                    cryptoPoint[acc.id] = valueBRL;
+                }
             });
-            return point;
+            return { general: point, crypto: cryptoPoint };
         });
 
+        // Separate arrays for charting
+        const generalEvoData = evoData.map(d => d.general);
+        const cryptoEvoData = evoData.map(d => d.crypto);
+
         // --- Allocation (Donut) ---
-        // Based on latest snapshot (last in sorted list? No, sorted is ASC, so last is latest)
-        // Wait, logic above sortedSnapshots for assetsByCurrency was DESC. Here I sorted ASC for chart.
-        // So latest is the last one.
-        const latestInfo = evoData[evoData.length - 1];
+        const latestInfo = generalEvoData[generalEvoData.length - 1] || {};
+
         let allocData = [];
+        let cryptoAllocData = [];
+        let cryptoTotal = 0;
 
         if (latestInfo) {
             allocData = data.accounts.map(acc => {
-                // Get value from the processed evoData point which is already in BRL
                 const val = latestInfo[acc.id] || 0;
-                return {
-                    name: acc.name,
+                const isC = isCrypto(acc);
+                if (isC) cryptoTotal += val;
+
+                const item = {
+                    name: `${acc.name} (${acc.currency || 'BRL'})`,
+                    simpleName: acc.name,
                     value: val,
-                    currency: acc.currency, // just for info
-                    originalCurrency: acc.currency === 'BRL' ? 'R$' : (acc.currency === 'USD' ? '$' : '€')
+                    currency: acc.currency,
+                    id: acc.id,
+                    type: acc.type
                 };
+
+                if (isC && val > 0) cryptoAllocData.push(item);
+
+                return item;
             }).filter(d => d.value > 0);
         }
 
-        return { evolutionData: evoData, allocationData: allocData };
+        return {
+            evolutionData: generalEvoData,
+            allocationData: allocData,
+            cryptoStats: {
+                evolutionData: cryptoEvoData,
+                allocationData: cryptoAllocData,
+                totalBalance: cryptoTotal
+            }
+        };
     }, [data.snapshots, data.accounts]);
+
+    // Sort accounts by latest balance for the Asset Evolution chart
+    const sortedAccounts = useMemo(() => {
+        if (!evolutionData || evolutionData.length === 0) return data.accounts;
+        const latestPoint = evolutionData[evolutionData.length - 1] || {};
+
+        return [...data.accounts].sort((a, b) => {
+            const valA = latestPoint[a.id] || 0;
+            const valB = latestPoint[b.id] || 0;
+            return valB - valA; // Descending
+        });
+    }, [data.accounts, evolutionData]);
+
 
     // 2. Chart Data (2 months back + Current + 6 months forward) & Pie Data
     const { chartData, pieData } = useMemo(() => {
@@ -234,10 +312,11 @@ export function DashboardTab() {
         return current || { expense: 0, income: 0 };
     }, [chartData]);
 
+
+
     return (
         <div className="space-y-6">
 
-            {/* Top Row Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 {/* Total Spendings (Current Month) */}
@@ -314,7 +393,7 @@ export function DashboardTab() {
                 ))}
             </div>
 
-            {/* NEW: Asset Evolution & Allocation */}
+            {/* Asset Evolution & Allocation */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Stacked Area/Bar Chart - Evolution */}
                 <Card className="lg:col-span-2 p-6 bg-white min-h-[400px]">
@@ -340,10 +419,13 @@ export function DashboardTab() {
                                     cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                                     content={({ active, payload, label }) => {
                                         if (active && payload && payload.length) {
+                                            // Sort by value descending
+                                            const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
+
                                             return (
                                                 <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100 z-50">
                                                     <p className="text-xs text-gray-500 mb-2 font-bold uppercase">{label}</p>
-                                                    {payload.map((p, i) => (
+                                                    {sortedPayload.map((p, i) => (
                                                         <div key={i} className="flex justify-between gap-4 text-sm mb-1">
                                                             <span className="font-medium" style={{ color: p.color }}>{p.name}:</span>
                                                             <span className="font-mono text-gray-600">
@@ -363,22 +445,32 @@ export function DashboardTab() {
                                         return null;
                                     }}
                                 />
-                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                {data.accounts.map((acc, index) => {
-                                    // Generate a color or use a predefined one if available? 
-                                    // Let's generate based on index or hash
-                                    const colors = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
-                                    const color = colors[index % colors.length];
-                                    return (
-                                        <Bar
-                                            key={acc.id}
-                                            dataKey={acc.id}
-                                            name={acc.name}
-                                            stackId="a"
-                                            fill={color}
-                                        />
-                                    );
-                                })}
+                                <Legend
+                                    content={({ payload }) => (
+                                        <div className="flex flex-wrap gap-4 mt-6 justify-center">
+                                            {payload.map((entry, index) => (
+                                                <div key={`item-${index}`} className="flex items-center gap-1.5">
+                                                    <div
+                                                        className="w-2 h-2 rounded-full"
+                                                        style={{ backgroundColor: entry.color }}
+                                                    />
+                                                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                                        {entry.value}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                />
+                                {sortedAccounts.map((acc, index) => (
+                                    <Bar
+                                        key={acc.id}
+                                        dataKey={acc.id}
+                                        name={`${acc.name} (${acc.currency || 'BRL'})`}
+                                        stackId="a"
+                                        fill={getAccountColor(acc, index)}
+                                    />
+                                ))}
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -401,19 +493,94 @@ export function DashboardTab() {
                                     dataKey="value"
                                 >
                                     {allocationData.map((entry, index) => {
-                                        const colors = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
-                                        return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                                        const acc = data.accounts.find(a => a.id === entry.id);
+                                        return <Cell key={`cell-${index}`} fill={getAccountColor(acc, index)} />;
                                     })}
                                 </Pie>
                                 <Tooltip
                                     formatter={(value, name, props) => [formatCurrency(value), name]}
                                 />
-                                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px' }} />
+                                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '11px', maxWidth: '120px' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
             </div>
+
+            {/* Crypto Portfolio Section */}
+            {
+                cryptoStats.allocationData.length > 0 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 p-6 bg-white min-h-[350px]">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-lg font-bold text-gray-900">Crypto Portfolio</h3>
+                                <div className="text-right">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase">Total Value</p>
+                                    <p className="text-xl font-bold font-mono text-gray-900">{formatCurrency(cryptoStats.totalBalance)}</p>
+                                </div>
+                            </div>
+                            <div className="h-[250px]">
+                                {/* Area Chart for Crypto Trend */}
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={cryptoStats.evolutionData}>
+                                        <defs>
+                                            <linearGradient id="colorCrypto" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                                        <YAxis hide domain={['auto', 'auto']} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '8px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            formatter={(val) => formatCurrency(val)}
+                                        />
+                                        {data.accounts.filter(acc => ['BTC', 'ETH', 'BNB', 'XRP'].includes(acc.currency) || acc.type === 'Crypto').map((acc, index) => (
+                                            <Area
+                                                key={acc.id}
+                                                type="monotone"
+                                                dataKey={acc.id}
+                                                name={`${acc.name} (${acc.currency})`}
+                                                stackId="1"
+                                                stroke={getAccountColor(acc, index)}
+                                                fill={getAccountColor(acc, index)}
+                                                fillOpacity={0.6}
+                                            />
+                                        ))}
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card>
+
+                        <Card className="lg:col-span-1 p-6 bg-white min-h-[350px] flex flex-col">
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Crypto Allocation</h3>
+                            <div className="flex-1 min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={cryptoStats.allocationData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {cryptoStats.allocationData.map((entry, index) => {
+                                                const acc = data.accounts.find(a => a.id === entry.id);
+                                                return <Cell key={`cell-${index}`} fill={getAccountColor(acc, index)} />;
+                                            })}
+                                        </Pie>
+                                        <Tooltip formatter={(value, name) => [formatCurrency(value), name]} />
+                                        <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '11px' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card>
+                    </div>
+                )
+            }
 
 
 
@@ -482,7 +649,23 @@ export function DashboardTab() {
                                             return null;
                                         }}
                                     />
-                                    <Legend />
+                                    <Legend
+                                        content={({ payload }) => (
+                                            <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                                                {payload.map((entry, index) => (
+                                                    <div key={`item-${index}`} className="flex items-center gap-1.5">
+                                                        <div
+                                                            className="w-2 h-2 rounded-full"
+                                                            style={{ backgroundColor: entry.color }}
+                                                        />
+                                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                                            {entry.value}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    />
                                     {/* Generate Bars for Categories */}
                                     {(data.categories || [])
                                         .filter(c => c.type === 'EXPENSE' || c.type === 'BOTH')

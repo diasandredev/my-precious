@@ -97,7 +97,7 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName
 function Modal({ isOpen, onClose, title, children, className }) {
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className={className}>
+            <DialogContent className={className} aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                 </DialogHeader>
