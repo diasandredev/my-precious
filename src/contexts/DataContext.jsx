@@ -11,7 +11,7 @@ const DataContext = createContext();
 const initialData = {
     accounts: [],
     snapshots: [],
-    fixedItems: [],
+    recurringTransactions: [],
     transactions: [],
     categories: [
         // Default Categories - Fallback if not loaded
@@ -113,7 +113,8 @@ export function DataProvider({ children }) {
                         ...prev,
                         accounts: remoteData.accounts || [],
                         snapshots: remoteData.snapshots || [],
-                        fixedItems: remoteData.fixedItems || [],
+                        snapshots: remoteData.snapshots || [],
+                        recurringTransactions: remoteData.fixedItems || [],
                         transactions: remoteData.transactions || [],
                         categories: finalCategories,
                         settings: { ...prev.settings, ...(remoteData.settings || {}) }
@@ -229,24 +230,63 @@ export function DataProvider({ children }) {
 
     // --- NEW Financial Actions ---
 
-    // Fixed Items
-    const addFixedItem = (item) => {
-        const newItem = { ...item, id: item.id || uuidv4() };
-        setData(prev => ({ ...prev, fixedItems: [...prev.fixedItems, newItem] }));
+    // Recurring Transactions
+    const addRecurringTransaction = (item) => {
+        const newItem = {
+            ...item,
+            id: item.id || uuidv4(),
+            skippedDates: [] // Initialize skippedDates
+        };
+        setData(prev => ({ ...prev, recurringTransactions: [...prev.recurringTransactions, newItem] }));
         syncAction({ type: 'create', collection: 'fixedItems', data: newItem });
     };
 
-    const updateFixedItem = (id, updates) => {
+    const updateRecurringTransaction = (id, updates) => {
+        // 1. Update the Parent
         setData(prev => ({
             ...prev,
-            fixedItems: prev.fixedItems.map(item => item.id === id ? { ...item, ...updates } : item)
+            recurringTransactions: prev.recurringTransactions.map(item => item.id === id ? { ...item, ...updates } : item)
         }));
         syncAction({ type: 'update', collection: 'fixedItems', id, data: updates });
+
+        // 2. Cascade Update to Children (Realized Transactions) if relevant fields changed
+        if (updates.title || updates.categoryId) {
+            const childTransactions = data.transactions.filter(t => t.recurringTransactionId === id || t.fixedItemId === id);
+            childTransactions.forEach(child => {
+                const childUpdates = {};
+                if (updates.title) childUpdates.title = updates.title;
+                if (updates.categoryId) childUpdates.categoryId = updates.categoryId;
+
+                // Use the internal updateTransaction logic
+                updateTransaction(child.id, childUpdates);
+            });
+        }
     };
 
-    const deleteFixedItem = (id) => {
-        setData(prev => ({ ...prev, fixedItems: prev.fixedItems.filter(item => item.id !== id) }));
+    const deleteRecurringTransaction = (id) => {
+        // 1. Delete Parent
+        setData(prev => ({ ...prev, recurringTransactions: prev.recurringTransactions.filter(item => item.id !== id) }));
         syncAction({ type: 'delete', collection: 'fixedItems', id });
+
+        // 2. Cascade Delete to Children (Realized Transactions)
+        // Find all transactions linked to this recurring item
+        const childTransactions = data.transactions.filter(t => t.recurringTransactionId === id || t.fixedItemId === id);
+
+        // Delete them one by one (or batch if possible, but one by one ensures UI update)
+        childTransactions.forEach(child => {
+            deleteTransaction(child.id);
+        });
+    };
+
+    const skipRecurringTransaction = (id, dateStr) => {
+        // Find item to get current skippedDates
+        const item = data.recurringTransactions.find(i => i.id === id);
+        if (!item) return;
+
+        const updatedSkippedDates = [...(item.skippedDates || []), dateStr];
+
+        // Optimistic update
+        updateRecurringTransaction(id, { skippedDates: updatedSkippedDates });
     };
 
     // Transactions
@@ -299,9 +339,10 @@ export function DataProvider({ children }) {
             deleteSnapshot,
             addFixedExpense,
             deleteFixedExpense,
-            addFixedItem, // Exposed
-            updateFixedItem,
-            deleteFixedItem,
+            addRecurringTransaction,
+            updateRecurringTransaction,
+            deleteRecurringTransaction,
+            skipRecurringTransaction,
             addTransaction,
             updateTransaction,
             deleteTransaction,

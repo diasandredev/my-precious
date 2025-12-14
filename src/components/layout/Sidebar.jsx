@@ -18,6 +18,7 @@ export function Sidebar({ activeTab, onTabChange }) {
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'accounts', label: 'Accounts', icon: Wallet },
             { id: 'projections', label: 'Projections', icon: TrendingUp },
+
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
         ],
         personal: [

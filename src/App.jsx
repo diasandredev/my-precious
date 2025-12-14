@@ -45,6 +45,8 @@ function App() {
         return <CalendarTab />;
       case 'settings':
         return <SettingsTab />;
+      case 'recurring':
+        return <RecurringTransactionsList />;
       case 'transfers':
       case 'payments':
       case 'games':

@@ -21,54 +21,88 @@ export function WealthProjectionChart({ data, className }) {
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
+            // Calculate total from payload items to allow checking % contribution
+            const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
+
             return (
-                <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl">
-                    <p className="font-bold text-gray-900 mb-2">{label}</p>
-                    {payload.map((entry, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm">
-                            <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: entry.color }}
-                            />
-                            <span className="text-gray-500 capitalize">{entry.name}:</span>
-                            <span className="font-mono font-medium text-gray-900">
+                <div className="bg-white p-4 border border-gray-100 shadow-xl rounded-xl z-50">
+                    <p className="font-bold text-gray-900 mb-3 text-base">{label}</p>
+                    <div className="space-y-2">
+                        {payload.map((entry, index) => (
+                            <div key={index} className="flex items-center justify-between gap-6 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className="w-2.5 h-2.5 rounded-full"
+                                        style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-gray-600 font-medium">{entry.name}</span>
+                                </div>
+                                <span className="font-mono font-bold text-gray-900">
+                                    {new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(entry.value)}
+                                </span>
+                            </div>
+                        ))}
+                        <div className="border-t border-gray-100 my-2 pt-2 flex items-center justify-between gap-6">
+                            <span className="text-gray-900 font-bold">Total Projected</span>
+                            <span className="font-mono font-bold text-gray-900 text-base">
                                 {new Intl.NumberFormat('pt-BR', {
                                     style: 'currency',
                                     currency: 'BRL'
-                                }).format(entry.value)}
+                                }).format(total)}
                             </span>
                         </div>
-                    ))}
+                    </div>
                 </div>
             );
         }
         return null;
     };
 
-    // Calculate domain for better visual scaling
-    const minVal = Math.min(...data.map(d => d.amount));
-    const maxVal = Math.max(...data.map(d => d.amount));
-    const padding = (maxVal - minVal) * 0.1;
-
     return (
         <Card className={cn("p-6 bg-white border-gray-100 shadow-sm", className)}>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-8">
                 <div>
                     <h3 className="text-lg font-bold text-gray-900">Wealth Projection (1 Year)</h3>
-                    <p className="text-xs text-gray-500">Estimated accumulation based on current recurring items + yield</p>
+                    <p className="text-xs text-gray-500">Breakdown of growth by source</p>
+                </div>
+                {/* Simple Legend */}
+                <div className="flex items-center gap-4 text-xs font-medium">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                        <span className="text-gray-600">Initial Balance</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span className="text-gray-600">Savings Added</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span className="text-gray-600">Yield Earned</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="h-[350px] w-full">
+            <div className="h-[400px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                         data={data}
                         margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
                         <defs>
-                            <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            <linearGradient id="colorYield" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
+                            </linearGradient>
+                            <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+                            </linearGradient>
+                            <linearGradient id="colorPrincipal" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2} />
                             </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -92,16 +126,32 @@ export function WealthProjectionChart({ data, className }) {
                                 }).format(value)
                             }
                         />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#e5e7eb' }} />
+
+                        {/* Stacked Areas - Order matters for visual layering (rendered bottom to top in stack) */}
                         <Area
                             type="monotone"
-                            dataKey="amount"
-                            name="Total Wealth"
+                            dataKey="initialPrincipal"
+                            name="Initial Balance"
+                            stackId="1"
+                            stroke="#94a3b8"
+                            fill="url(#colorPrincipal)"
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="accumulatedSavings"
+                            name="Savings Added"
+                            stackId="1"
+                            stroke="#3b82f6"
+                            fill="url(#colorSavings)"
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="totalYield"
+                            name="Yield Earned"
+                            stackId="1"
                             stroke="#10b981"
-                            strokeWidth={3}
-                            fillOpacity={1}
-                            fill="url(#colorAmount)"
-                            activeDot={{ r: 6, strokeWidth: 0 }}
+                            fill="url(#colorYield)"
                         />
                     </AreaChart>
                 </ResponsiveContainer>
