@@ -113,7 +113,6 @@ export function DataProvider({ children }) {
                         ...prev,
                         accounts: remoteData.accounts || [],
                         snapshots: remoteData.snapshots || [],
-                        snapshots: remoteData.snapshots || [],
                         recurringTransactions: remoteData.fixedItems || [],
                         transactions: remoteData.transactions || [],
                         categories: finalCategories,

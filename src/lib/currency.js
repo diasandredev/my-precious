@@ -51,11 +51,38 @@ export async function fetchExchangeRates(dateStr, currencies = []) {
             // Historical
             // AwesomeAPI /json/daily/:moeda/:dias supports historical
             // We fetch each currency in parallel for historical data logic robustness
-            const requests = targetCurrencies.map(curr =>
-                fetch(`${API_BASE_URL}/json/daily/${curr}-BRL/?start_date=${formattedDate}&end_date=${formattedDate}`, fetchOptions)
-                    .then(res => res.json())
-                    .then(data => ({ curr, data }))
-            );
+
+            const fetchWithFallback = async (curr, targetDate, attempts = 0) => {
+                if (attempts > 7) return { curr, data: [] }; // Give up after a week back
+
+                const dateString = targetDate.toISOString().slice(0, 10).replace(/-/g, '');
+
+                try {
+                    const res = await fetch(`${API_BASE_URL}/json/daily/${curr}-BRL/?start_date=${dateString}&end_date=${dateString}`, fetchOptions);
+                    if (!res.ok) throw new Error('Network response was not ok');
+
+                    const data = await res.json();
+
+                    // If empty, try previous day
+                    if (!data || data.length === 0) {
+                        const prevDate = new Date(targetDate);
+                        prevDate.setDate(prevDate.getDate() - 1);
+                        return fetchWithFallback(curr, prevDate, attempts + 1);
+                    }
+
+                    return { curr, data };
+                } catch (err) {
+                    console.warn(`Failed to fetch ${curr} for ${dateString}, retrying prev day...`, err);
+                    // On error, also try previous day? Or just fail? 
+                    // Let's assume on error we might want to fail or retry. 
+                    // For now, let's treat it like empty data to be robust if it's just missing data error
+                    const prevDate = new Date(targetDate);
+                    prevDate.setDate(prevDate.getDate() - 1);
+                    return fetchWithFallback(curr, prevDate, attempts + 1);
+                }
+            };
+
+            const requests = targetCurrencies.map(curr => fetchWithFallback(curr, dateObj));
 
             const results = await Promise.all(requests);
 
