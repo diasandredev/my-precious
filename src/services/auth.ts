@@ -1,4 +1,12 @@
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import {
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged,
+    User,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword
+} from "firebase/auth";
 import { auth } from "../lib/firebase";
 
 import { dbService } from "./db";
@@ -16,6 +24,28 @@ export const signInWithGoogle = async (): Promise<User> => {
         throw error;
     }
 };
+
+export const signUpWithEmail = async (email, password): Promise<User> => {
+    try {
+        await dbService.clear();
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        return result.user;
+    } catch (error) {
+        console.error("Error signing up with email", error);
+        throw error;
+    }
+}
+
+export const signInWithEmail = async (email, password): Promise<User> => {
+    try {
+        await dbService.clear();
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        return result.user;
+    } catch (error) {
+        console.error("Error signing in with email", error);
+        throw error;
+    }
+}
 
 export const logout = async (): Promise<void> => {
     try {
