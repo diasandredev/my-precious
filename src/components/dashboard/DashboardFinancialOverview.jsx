@@ -74,8 +74,8 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                                 .filter(c => c.type === 'EXPENSE' || c.type === 'BOTH')
                                 .map(cat => (
                                     <Bar
-                                        key={cat.id}
-                                        dataKey={cat.id}
+                                        key={`exp_${cat.id}`}
+                                        dataKey={`exp_${cat.id}`}
                                         name={cat.name}
                                         stackId="expenses"
                                         fill={cat.color}
@@ -83,7 +83,7 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                                 ))
                             }
                             {/* Uncategorized expenses */}
-                            <Bar dataKey="uncategorized" name="Uncategorized" stackId="expenses" fill="#9ca3af" />
+                            <Bar dataKey="exp_uncategorized_expense" name="Uncategorized Exp" stackId="expenses" fill="#9ca3af" />
 
                             {/* Income Bar (Single or Stacked? User said Income vs Expense stacked. Usually income is one block) */}
                             {/* Let's keep Income as a separate bar stack for comparison */}
@@ -91,14 +91,16 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                                 .filter(c => c.type === 'INCOME')
                                 .map(cat => (
                                     <Bar
-                                        key={cat.id}
-                                        dataKey={cat.id}
+                                        key={`inc_${cat.id}`}
+                                        dataKey={`inc_${cat.id}`}
                                         name={cat.name}
                                         stackId="income"
                                         fill={cat.color}
                                     />
                                 ))
                             }
+                            {/* Uncategorized income */}
+                            <Bar dataKey="inc_uncategorized_income" name="Uncategorized Inc" stackId="income" fill="#d1d5db" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

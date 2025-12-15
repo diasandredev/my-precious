@@ -246,7 +246,33 @@ export function useCalendarData() {
         }
     };
 
+    const handleImportTransactions = async (transactions) => {
+        let importedCount = 0;
+        try {
+            for (const t of transactions) {
+                // Categorize returns the CATEGORY ID string
+                const categoryId = categorizeTransaction(t.description, t.categoryOriginal || t.description, data.categories || []);
+
+                // Create transaction
+                await addTransaction({
+                    title: t.description,
+                    amount: Math.abs(t.amount),
+                    type: t.type || 'EXPENSE', // Support dynamic type
+                    date: t.date,
+                    categoryId: categoryId || 'cat_other',
+                    status: 'PAID'
+                });
+                importedCount++;
+            }
+            alert(`Successfully imported ${importedCount} transactions!`);
+        } catch (error) {
+            console.error('Import logic error:', error);
+            alert('Failed to process imported data.');
+        }
+    };
+
     const handleFileUpload = async (event) => {
+        // Legacy support if needed, or wrapped
         const file = event.target.files[0];
         if (!file) return;
 
@@ -254,35 +280,12 @@ export function useCalendarData() {
         reader.onload = async (e) => {
             const text = e.target.result;
             try {
-                const { transactions: rawTransactions, errors } = parseTransactionsCSV(text);
-
-                if (errors.length > 0) {
-                    console.warn("CSV Import warnings:", errors);
-                }
-
-                let importedCount = 0;
-
-                for (const t of rawTransactions) {
-                    // Categorize returns the CATEGORY ID string (e.g. 'cat_shopping'), not an object
-                    const categoryId = categorizeTransaction(t.description, t.categoryOriginal, data.categories || []);
-
-                    // Create transaction
-                    await addTransaction({
-                        title: t.description,
-                        amount: Math.abs(t.amount),
-                        type: 'EXPENSE',
-                        date: t.date,
-                        categoryId: categoryId || 'cat_other', // Use the ID directly, default to 'cat_other' if null
-                        status: 'PAID' // Ensure status is PAID
-                    });
-                    importedCount++;
-                }
-
-                alert(`Successfully imported ${importedCount} transactions!`);
-                event.target.value = ''; // Reset input
+                const { transactions, errors } = parseTransactionsCSV(text);
+                if (errors.length > 0) console.warn("CSV Import warnings:", errors);
+                await handleImportTransactions(transactions);
+                event.target.value = '';
             } catch (error) {
-                console.error('Import logic error:', error);
-                alert('Failed to process CSV data.');
+                console.error('Legacy CSV Import error:', error);
             }
         };
         reader.readAsText(file);
@@ -305,8 +308,9 @@ export function useCalendarData() {
         handleDelete,
         handleSubmit,
         handleFileUpload,
+        handleImportTransactions, // New exposed method
         isConfirming,
         editingItem,
-        data // Expose data if needed (e.g. syncStatus in header)
+        data
     };
 }

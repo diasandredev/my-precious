@@ -50,18 +50,10 @@ export function CalendarHeader({ currentMonth, setCurrentMonth, handleFileUpload
 
             <div className="flex items-center gap-3 w-full md:w-auto">
                 <SyncStatus />
-                <div className="relative">
-                    <input
-                        type="file"
-                        accept=".csv"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={handleFileUpload}
-                    />
-                    <Button variant="outline" className="gap-2">
-                        <Upload size={16} />
-                        Import CSV
-                    </Button>
-                </div>
+                <Button variant="outline" className="gap-2" onClick={handleFileUpload}>
+                    <Upload size={16} />
+                    Import
+                </Button>
                 <div className="h-6 w-px bg-gray-200 mx-2" /> {/* Divider */}
                 <Button onClick={onAdd} className="bg-black text-white hover:bg-gray-800 gap-2">
                     <Plus size={16} />

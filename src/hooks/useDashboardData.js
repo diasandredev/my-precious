@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isAfter, isBefore, parseISO } from 'date-fns';
 import { useData } from '../contexts/DataContext';
+import { getFinancialsForMonth } from '../lib/financialPeriodUtils';
 
 export function useDashboardData() {
     const { data, formatCurrency } = useData();
@@ -193,6 +194,8 @@ export function useDashboardData() {
     }, [data.accounts, evolutionData]);
 
 
+
+
     // 2. Chart Data (2 months back + Current + 6 months forward) & Pie Data
     const { chartData, pieData } = useMemo(() => {
         const currentDate = new Date();
@@ -209,7 +212,7 @@ export function useDashboardData() {
             months.push({
                 date: d,
                 name: format(d, 'MMM'),
-                fullDate: format(d, 'yyyy-MM'), // Format matches default select values usually
+                fullDate: format(d, 'yyyy-MM'),
                 expense: 0,
                 income: 0,
                 isFuture: i > 0,
@@ -217,60 +220,45 @@ export function useDashboardData() {
             });
         }
 
-        // Helper to add to pie if matches filter
-        const addToPie = (monthData, catId, amount) => {
-            const isMatch = breakdownFilter === 'ALL' || monthData.fullDate === breakdownFilter;
-            if (isMatch) {
-                if (!filteredExpenses[catId]) filteredExpenses[catId] = 0;
-                filteredExpenses[catId] += amount;
-            }
-        };
+        // Calculate totals for each month using shared logic
+        months.forEach(m => {
+            const financials = getFinancialsForMonth(
+                m.date,
+                data.recurringTransactions,
+                data.transactions,
+                [] // fixedExpenses legacy
+            );
 
-        // Fill Past & Current from Transactions
-        data.transactions.forEach(t => {
-            const tDate = new Date(t.date);
-            const monthData = months.find(m => isSameMonth(tDate, m.date));
-            if (monthData) {
-                if (t.type === 'EXPENSE') {
-                    monthData.expense += t.amount;
-                    // Add to category bucket
-                    const catId = t.categoryId || 'uncategorized';
-                    if (!monthData[catId]) monthData[catId] = 0;
-                    monthData[catId] += t.amount;
+            financials.forEach(item => {
+                const catId = item.categoryId;
 
-                    addToPie(monthData, catId, t.amount);
+                if (item.type === 'EXPENSE') {
+                    m.expense += item.amount;
 
-                } else if (t.type === 'INCOME') {
-                    monthData.income += t.amount;
-                    // Add to category bucket (if we stack income too)
-                    const catId = t.categoryId || 'uncategorized';
-                    if (!monthData[catId]) monthData[catId] = 0;
-                    monthData[catId] += t.amount;
-                }
-            }
-        });
+                    // Add to Stacked Bar Data
+                    const key = catId ? `exp_${catId}` : 'exp_uncategorized_expense';
+                    if (!m[key]) m[key] = 0;
+                    m[key] += item.amount;
 
-        // Fill Future from Fixed Items (Projections)
-        if (data.fixedItems) {
-            data.fixedItems.forEach(item => {
-                months.filter(m => m.isFuture).forEach(m => {
-                    if (item.type === 'EXPENSE') {
-                        m.expense += item.amount;
-                        const catId = item.categoryId || 'uncategorized';
-                        if (!m[catId]) m[catId] = 0;
-                        m[catId] += item.amount;
-
-                        addToPie(m, catId, item.amount);
-
-                    } else if (item.type === 'INCOME') {
-                        m.income += item.amount;
-                        const catId = item.categoryId || 'uncategorized';
-                        if (!m[catId]) m[catId] = 0;
-                        m[catId] += item.amount;
+                    // Add to pie chart buckets
+                    // Only for breakdown filter matching months
+                    const isMatch = breakdownFilter === 'ALL' || m.fullDate === breakdownFilter;
+                    if (isMatch) {
+                        const pieKey = catId || 'uncategorized';
+                        if (!filteredExpenses[pieKey]) filteredExpenses[pieKey] = 0;
+                        filteredExpenses[pieKey] += item.amount;
                     }
-                });
+
+                } else if (item.type === 'INCOME') {
+                    m.income += item.amount;
+
+                    // Add to Stacked Bar Data
+                    const key = catId ? `inc_${catId}` : 'inc_uncategorized_income';
+                    if (!m[key]) m[key] = 0;
+                    m[key] += item.amount;
+                }
             });
-        }
+        });
 
         return {
             chartData: months,
@@ -279,7 +267,7 @@ export function useDashboardData() {
                 return { name: cat.name, value: amount, color: cat.color };
             })
         };
-    }, [data.transactions, data.fixedItems, data.categories, breakdownFilter]);
+    }, [data.transactions, data.recurringTransactions, data.categories, breakdownFilter]);
 
     // 3. Projected Net Worth (Current + Future)
     const projectionData = useMemo(() => {
