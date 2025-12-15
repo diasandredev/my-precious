@@ -76,7 +76,12 @@ const compactQueue = (queue: QueuedAction[], newAction: QueuedAction): QueuedAct
     return newQueue;
 }
 
-export const queueAction = async (action: BatchAction) => {
+// Concurrency Guard
+let isSyncing = false;
+
+export const queueAction = async (action: BatchAction, options: { autoSync?: boolean } = { autoSync: true }) => {
+
+
     const newAction = { ...action, timestamp: Date.now() };
 
     // Apply compaction utilizing atomic update
@@ -84,7 +89,8 @@ export const queueAction = async (action: BatchAction) => {
         return compactQueue(queue, newAction);
     });
 
-    if (updatedQueue.length >= BATCH_THRESHOLD) {
+    if (options.autoSync && updatedQueue.length >= BATCH_THRESHOLD) {
+
         syncPendingActions();
     }
 };
@@ -94,18 +100,31 @@ export const getPendingActionCount = async (): Promise<number> => {
 };
 
 export const syncPendingActions = async () => {
-    const queue = await getQueue();
-    if (queue.length === 0) return;
+    if (isSyncing) {
 
-    // Send all pending actions
+        return;
+    }
+    isSyncing = true;
+
     try {
+        const queue = await getQueue();
+        if (queue.length === 0) {
+            isSyncing = false;
+            return;
+        }
+
+
+
+        // Send all pending actions
         await executeBatch(queue);
         // Clear queue on success
         await setQueue([]);
-        console.log("Sync completed successfully.");
+
     } catch (error) {
         console.error("Sync failed:", error);
         // On failure, keep items in queue to retry later
+    } finally {
+        isSyncing = false;
     }
 };
 
@@ -133,7 +152,7 @@ export const fetchUserData = async (uid: string) => {
         // Replay Pending Actions (Optimistic Consistency on Reload)
         const queue = await getQueue();
         if (queue.length > 0) {
-            console.log(`Replaying ${queue.length} pending actions on loaded data...`);
+
 
             queue.forEach(action => {
                 // Determine collection key from path (e.g., "users/uid/accounts" -> "accounts")
@@ -179,18 +198,24 @@ export const fetchUserData = async (uid: string) => {
     }
 }
 
-let intervalId: NodeJS.Timeout | null = null;
+// HMR-safe scheduler using window
+const getWindow = () => window as any;
 
 export const startSyncScheduler = () => {
-    if (intervalId) return;
-    intervalId = setInterval(() => {
+    const w = getWindow();
+    if (w._syncInterval) return;
+
+
+    w._syncInterval = setInterval(() => {
         syncPendingActions();
     }, SYNC_INTERVAL_MS);
 };
 
 export const stopSyncScheduler = () => {
-    if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
+    const w = getWindow();
+    if (w._syncInterval) {
+
+        clearInterval(w._syncInterval);
+        w._syncInterval = null;
     }
 };

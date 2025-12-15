@@ -35,6 +35,8 @@ export const parseTransactionsCSV = (csvContent) => {
 
         try {
             const dateStr = columns[0].trim();
+            const cardName = columns[1].trim();
+            const cardLastDigits = columns[2].trim();
             const category = columns[3].trim();
             const description = columns[4].trim();
             const installmentStr = columns[5]?.trim() || 'Única';
@@ -81,7 +83,9 @@ export const parseTransactionsCSV = (csvContent) => {
                 amount,
                 type: 'EXPENSE',
                 originalLine: i + 1,
-                installment: installmentStr
+                installment: installmentStr,
+                cardName,
+                cardLastDigits
             });
 
         } catch (e) {

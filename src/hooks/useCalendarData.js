@@ -8,7 +8,7 @@ import { categorizeTransaction } from '../lib/categorizer';
 
 
 export function useCalendarData() {
-    const { data, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction, skipRecurringTransaction, addTransaction, updateTransaction, deleteTransaction } = useData();
+    const { data, addRecurringTransaction, updateRecurringTransaction, deleteRecurringTransaction, skipRecurringTransaction, addTransaction, updateTransaction, deleteTransaction, syncData } = useData();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [itemType, setItemType] = useState('one-time'); // 'one-time' or 'recurring'
@@ -246,25 +246,76 @@ export function useCalendarData() {
         }
     };
 
+    // Helper to generate consistent ID
+    const generateTransactionHash = (t) => {
+        // Create a string from stable fields
+        // Format: DATE|DESCRIPTION|AMOUNT|CARD_LAST_4|INSTALLMENT
+        // We use Math.abs(amount) to be safe, though parser ensures positive.
+        // Description should be trimmed and lowercase for better matching?
+        // User request: "hash unico... considerar todas as informacoes"
+        const rawString = `${t.date}|${t.description.trim()}|${Math.abs(t.amount).toFixed(2)}|${t.cardLastDigits || ''}|${t.installment || ''}|${t.cardName || ''}`;
+
+        // Simple hash function (DJB2 variant or similar) for short ID, or just use btoa (Base64) of the string?
+        // Let's use a simple string hash for readability/debuggability if length ok, or actual hash.
+        // Since we want "ID", let's make it look like a hash.
+        let hash = 0;
+        for (let i = 0; i < rawString.length; i++) {
+            const char = rawString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        // formatting as hex to be cleaner
+        return `hash_${Math.abs(hash).toString(16)}`;
+    };
+
     const handleImportTransactions = async (transactions) => {
         let importedCount = 0;
+        let skippedCount = 0;
+
         try {
             for (const t of transactions) {
+                // 1. Generate Hash ID
+                const hashId = generateTransactionHash(t);
+
+                // 2. Check for Duplicates (Idempotency)
+                // Check if any existing transaction has this ID
+                const isDuplicate = data.transactions.some(existing => existing.id === hashId);
+
+                if (isDuplicate) {
+                    skippedCount++;
+                    continue;
+                }
+
                 // Categorize returns the CATEGORY ID string
                 const categoryId = categorizeTransaction(t.description, t.categoryOriginal || t.description, data.categories || []);
 
-                // Create transaction
+                // Create transaction using the Hash as ID
                 await addTransaction({
+                    id: hashId, // Use the generated hash as ID
                     title: t.description,
                     amount: Math.abs(t.amount),
                     type: t.type || 'EXPENSE', // Support dynamic type
                     date: t.date,
                     categoryId: categoryId || 'cat_other',
-                    status: 'PAID'
-                });
+                    status: 'PAID',
+                    // Persist extra metadata for future reference/debugging
+                    cardName: t.cardName || null,
+                    cardLastDigits: t.cardLastDigits || null,
+                    installment: t.installment || null
+                }, { autoSync: false }); // Batch optimization
                 importedCount++;
             }
-            alert(`Successfully imported ${importedCount} transactions!`);
+
+            // Trigger sync once manually if we imported anything
+            if (importedCount > 0 && syncData) {
+                console.log(`[CSV Import] Imported ${importedCount} items. Triggering manual batch sync.`);
+                syncData();
+            }
+
+            let msg = `Successfully imported ${importedCount} transactions!`;
+            if (skippedCount > 0) msg += ` (${skippedCount} duplicates skipped)`;
+            alert(msg);
+
         } catch (error) {
             console.error('Import logic error:', error);
             alert('Failed to process imported data.');

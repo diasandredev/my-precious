@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -48,6 +48,8 @@ export function DataProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
 
+    const lastUidRef = useRef(null);
+
     // 1. Load Local Data on Mount
     useEffect(() => {
         const loadLocal = async () => {
@@ -79,6 +81,16 @@ export function DataProvider({ children }) {
     // 3. Auth Listener & Remote Sync
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            // Prevent duplicate handling for same user session
+            if (currentUser?.uid === lastUidRef.current) {
+                return;
+            }
+            if (currentUser) {
+                lastUidRef.current = currentUser.uid;
+            } else {
+                lastUidRef.current = null;
+            }
+
             setUser(currentUser);
             if (currentUser) {
                 try {
@@ -101,7 +113,7 @@ export function DataProvider({ children }) {
                                 type: 'create',
                                 collection: `users/${currentUser.uid}/categories`,
                                 data: cat
-                            })
+                            }, { autoSync: false })
                         ));
 
                         // Force sync immediately as requested
@@ -131,7 +143,7 @@ export function DataProvider({ children }) {
     }, []);
 
     // Sync Helper
-    const syncAction = (action) => {
+    const syncAction = (action, options = {}) => {
         if (!user) return; // Should not happen if guarded
         const type = action.type;
         const collectionBase = action.collection;
@@ -140,7 +152,7 @@ export function DataProvider({ children }) {
         queueAction({
             ...action,
             collection: collectionPath
-        });
+        }, options);
     };
 
     // --- Actions (Optimistic + Sync) ---
@@ -289,10 +301,10 @@ export function DataProvider({ children }) {
     };
 
     // Transactions
-    const addTransaction = (transaction) => {
+    const addTransaction = (transaction, options = {}) => {
         const newTransaction = { ...transaction, id: transaction.id || uuidv4() };
         setData(prev => ({ ...prev, transactions: [...prev.transactions, newTransaction] }));
-        syncAction({ type: 'create', collection: 'transactions', data: newTransaction });
+        syncAction({ type: 'create', collection: 'transactions', data: newTransaction }, options);
     };
 
     const updateTransaction = (id, updates) => {
@@ -350,7 +362,8 @@ export function DataProvider({ children }) {
             deleteCategory,
             updateSettings,
             formatCurrency,
-            loading
+            loading,
+            syncData: syncPendingActions // Expose sync trigger
         }}>
             {children}
         </DataContext.Provider>
