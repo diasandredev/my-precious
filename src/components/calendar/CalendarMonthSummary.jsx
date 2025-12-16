@@ -1,30 +1,175 @@
+import { useState, useMemo } from 'react';
 import { format, isValid } from 'date-fns';
-import { Edit2, Trash2, CheckCircle } from 'lucide-react';
+import { Edit2, Trash2, CheckCircle, Search, Filter, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 import { cn } from '../../lib/utils';
-import { categorizeTransaction } from '../../lib/categorizer';
 
 export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, onDelete }) {
+    const [filterName, setFilterName] = useState('');
+    const [filterType, setFilterType] = useState('all');
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
+
     if (!monthlyFinancials) return null;
 
+    // Derived Data for Filters
+    const uniqueCategories = useMemo(() => {
+        if (!categories) return [];
+        // Only show categories present in the current month history
+        const usedCategoryIds = new Set(monthlyFinancials.history.map(item => item.categoryId).filter(Boolean));
+        return categories.filter(c => usedCategoryIds.has(c.id));
+    }, [categories, monthlyFinancials.history]);
+
+    // Filter and Sort
+    const filteredAndSortedHistory = useMemo(() => {
+        let result = [...monthlyFinancials.history];
+
+        // Filtering
+        if (filterName) {
+            const lowerFilter = filterName.toLowerCase();
+            result = result.filter(item =>
+                (item.title || item.name || '').toLowerCase().includes(lowerFilter)
+            );
+        }
+        if (filterType !== 'all') {
+            result = result.filter(item => item.type === filterType);
+        }
+        if (filterCategory !== 'all') {
+            result = result.filter(item => item.categoryId === filterCategory);
+        }
+
+        // Sorting
+        result.sort((a, b) => {
+            let aValue, bValue;
+
+            switch (sortConfig.key) {
+                case 'date':
+                    aValue = new Date(a.date).getTime();
+                    bValue = new Date(b.date).getTime();
+                    break;
+                case 'description':
+                    aValue = (a.title || a.name || '').toLowerCase();
+                    bValue = (b.title || b.name || '').toLowerCase();
+                    break;
+                case 'category':
+                    const catA = (categories || []).find(c => c.id === a.categoryId)?.name || 'Uncategorized';
+                    const catB = (categories || []).find(c => c.id === b.categoryId)?.name || 'Uncategorized';
+                    aValue = catA.toLowerCase();
+                    bValue = catB.toLowerCase();
+                    break;
+                case 'amount':
+                    aValue = a.amount;
+                    bValue = b.amount;
+                    break;
+                case 'status':
+                    aValue = (a.status || '').toLowerCase();
+                    bValue = (b.status || '').toLowerCase();
+                    break;
+                default:
+                    return 0;
+            }
+
+            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        return result;
+    }, [monthlyFinancials.history, filterName, filterType, filterCategory, sortConfig, categories]);
+
+    const handleSort = (key) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
+        }));
+    };
+
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return <ArrowUpDown size={14} className="ml-1 text-gray-300" />;
+        return sortConfig.direction === 'asc'
+            ? <ArrowUp size={14} className="ml-1 text-black" />
+            : <ArrowDown size={14} className="ml-1 text-black" />;
+    };
+
     return (
-        <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Month Summary</h3>
-                <div className="flex gap-4">
-                    <div className="text-right">
-                        <p className="text-xs text-gray-400 uppercase">Income</p>
-                        <p className="font-bold text-emerald-600">+{monthlyFinancials.income.toLocaleString()}</p>
+        <Card className="p-0 overflow-hidden bg-white border-gray-100 shadow-sm">
+            <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-gray-900">Month Summary</h3>
+                    <div className="flex gap-4">
+                        <div className="text-right">
+                            <p className="text-xs text-gray-400 uppercase">Income</p>
+                            <p className="font-bold text-emerald-600">+{monthlyFinancials.income.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-gray-400 uppercase">Expenses</p>
+                            <p className="font-bold text-red-600">-{monthlyFinancials.expense.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right pl-4 border-l">
+                            <p className="text-xs text-gray-400 uppercase">Balance</p>
+                            <p className={cn("font-bold", monthlyFinancials.balance >= 0 ? "text-emerald-600" : "text-red-600")}>
+                                {monthlyFinancials.balance.toLocaleString()}
+                            </p>
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-xs text-gray-400 uppercase">Expenses</p>
-                        <p className="font-bold text-red-600">-{monthlyFinancials.expense.toLocaleString()}</p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Input
+                            placeholder="Search transactions..."
+                            value={filterName}
+                            onChange={(e) => setFilterName(e.target.value)}
+                            className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all"
+                        />
                     </div>
-                    <div className="text-right pl-4 border-l">
-                        <p className="text-xs text-gray-400 uppercase">Balance</p>
-                        <p className={cn("font-bold", monthlyFinancials.balance >= 0 ? "text-emerald-600" : "text-red-600")}>
-                            {monthlyFinancials.balance.toLocaleString()}
-                        </p>
+                    <div className="flex gap-2">
+                        <div className="relative min-w-[120px]">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                            <select
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                                className="w-full h-10 pl-9 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                            >
+                                <option value="all">All Types</option>
+                                <option value="INCOME">Income</option>
+                                <option value="EXPENSE">Expense</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                        </div>
+                        <div className="relative min-w-[140px]">
+                            <select
+                                value={filterCategory}
+                                onChange={(e) => setFilterCategory(e.target.value)}
+                                className="w-full h-10 pl-3 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                            >
+                                <option value="all">All Categories</option>
+                                {uniqueCategories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                        </div>
+
+                        {(filterName || filterType !== 'all' || filterCategory !== 'all') && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    setFilterName('');
+                                    setFilterType('all');
+                                    setFilterCategory('all');
+                                }}
+                                className="h-10 w-10 text-gray-400 hover:text-gray-900 hover:bg-gray-100"
+                                title="Clear all filters"
+                            >
+                                <X size={18} />
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -32,19 +177,58 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="border-b border-gray-100">
-                            <th className="text-left py-3 font-semibold text-gray-400 w-[120px]">Date</th>
-                            <th className="text-left py-3 font-semibold text-gray-400">Description</th>
-                            <th className="text-center py-3 font-semibold text-gray-400 w-[150px]">Category</th>
+                        <tr className="border-b border-gray-100 bg-gray-50/50">
+                            <th
+                                className="text-left py-3 px-6 font-semibold text-gray-400 w-[120px] cursor-pointer hover:text-black group select-none transition-colors"
+                                onClick={() => handleSort('date')}
+                            >
+                                <div className="flex items-center">
+                                    Date
+                                    {getSortIcon('date')}
+                                </div>
+                            </th>
+                            <th
+                                className="text-left py-3 font-semibold text-gray-400 cursor-pointer hover:text-black group select-none transition-colors"
+                                onClick={() => handleSort('description')}
+                            >
+                                <div className="flex items-center">
+                                    Description
+                                    {getSortIcon('description')}
+                                </div>
+                            </th>
+                            <th
+                                className="text-center py-3 font-semibold text-gray-400 w-[150px] cursor-pointer hover:text-black group select-none transition-colors"
+                                onClick={() => handleSort('category')}
+                            >
+                                <div className="flex items-center justify-center">
+                                    Category
+                                    {getSortIcon('category')}
+                                </div>
+                            </th>
                             <th className="text-center py-3 font-semibold text-gray-400 w-[100px]">Type</th>
-                            <th className="text-right py-3 font-semibold text-gray-400 w-[120px]">In</th>
-                            <th className="text-right py-3 font-semibold text-gray-400 w-[120px]">Out</th>
-                            <th className="text-center py-3 font-semibold text-gray-400 w-[80px]">Status</th>
+                            <th
+                                className="text-right py-3 font-semibold text-gray-400 w-[120px] cursor-pointer hover:text-black group select-none transition-colors"
+                                onClick={() => handleSort('amount')}
+                            >
+                                <div className="flex items-center justify-end">
+                                    Amount
+                                    {getSortIcon('amount')}
+                                </div>
+                            </th>
+                            <th
+                                className="text-center py-3 font-semibold text-gray-400 w-[80px] cursor-pointer hover:text-black group select-none transition-colors"
+                                onClick={() => handleSort('status')}
+                            >
+                                <div className="flex items-center justify-center">
+                                    Status
+                                    {getSortIcon('status')}
+                                </div>
+                            </th>
                             <th className="text-center py-3 font-semibold text-gray-400 w-[80px]">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {monthlyFinancials.history.map((item, i) => {
+                        {filteredAndSortedHistory.map((item, i) => {
                             let categoryName = 'Uncategorized';
                             let categoryColor = '#9ca3af';
 
@@ -58,8 +242,8 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
 
                             return (
                                 <tr key={i} className="group hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-3 text-gray-500 font-mono text-xs">
-                                        {isValid(item.date) ? format(item.date, 'dd/MM') : 'Invalid'}
+                                    <td className="py-3 px-6 text-gray-500 font-mono text-xs">
+                                        {isValid(new Date(item.date)) ? format(new Date(item.date), 'dd/MM') : 'Invalid'}
                                     </td>
                                     <td className="py-3 font-medium text-gray-900">
                                         <div className="flex items-center gap-2">
@@ -88,11 +272,8 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                                             {item.type}
                                         </span>
                                     </td>
-                                    <td className="py-3 text-right font-mono font-medium text-emerald-600">
-                                        {item.type === 'INCOME' ? `R$ ${item.amount.toLocaleString()}` : ''}
-                                    </td>
-                                    <td className="py-3 text-right font-mono font-medium text-red-600">
-                                        {item.type === 'EXPENSE' ? `R$ ${item.amount.toLocaleString()}` : ''}
+                                    <td className={cn("py-3 text-right font-mono font-medium", item.type === 'INCOME' ? "text-emerald-600" : "text-red-600")}>
+                                        {item.type === 'INCOME' ? '+' : '-'} {Math.abs(item.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                     </td>
                                     <td className="py-3 text-center">
                                         <span className={cn(
@@ -128,10 +309,16 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                                 </tr>
                             );
                         })}
+                        {filteredAndSortedHistory.length === 0 && (
+                            <tr>
+                                <td colSpan={7} className="p-8 text-center text-gray-400 text-sm">
+                                    No transactions found matching your filters.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
         </Card>
     );
 }
-
