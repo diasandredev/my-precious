@@ -184,8 +184,9 @@ export function FinancialItemModal({ isOpen, onClose, itemType, setItemType, for
                                         value={formData.frequency}
                                         onChange={e => setFormData({ ...formData, frequency: e.target.value })}
                                     >
-                                        <option value="MONTHLY">Monthly</option>
-                                        <option value="YEARLY">Yearly</option>
+                                        <option value="MONTHLY">Mensal</option>
+                                        <option value="LAST_BUSINESS_DAY_OF_MONTH">Último dia útil do mês</option>
+                                        <option value="YEARLY">Anual</option>
                                     </select>
                                 </div>
                                 <div>

@@ -121,14 +121,30 @@ export function RecurringTransactionsList() {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-gray-900">{item.title}</h3>
-                                    <p className="text-sm text-gray-500">{item.frequency} • {category?.name || 'Uncategorized'}</p>
+                                    <p className="text-sm text-gray-500">
+                                        {{
+                                            'MONTHLY': 'Mensal',
+                                            'YEARLY': 'Anual',
+                                            'WEEKLY': 'Semanal',
+                                            'BIWEEKLY': 'Quinzenal',
+                                            'LAST_BUSINESS_DAY_OF_MONTH': 'Último dia útil do mês'
+                                        }[item.frequency] || item.frequency}
+                                        {' • '}
+                                        {category?.name || 'Uncategorized'}
+                                    </p>
                                     <div className="mt-2 flex items-baseline gap-1">
                                         <span className={`text-lg font-bold ${item.type === 'INCOME' ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {item.type === 'INCOME' ? '+' : '-'}{formatCurrency(item.amount)}
                                         </span>
                                         {item.isVariable && <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-medium">Variable</span>}
                                     </div>
-                                    <p className="text-xs text-gray-400 mt-2">Starts {item.startDate}</p>
+                                    <p className="text-xs text-gray-400 mt-2">
+                                        Starts {(() => {
+                                            if (!item.startDate) return '';
+                                            const [y, m, d] = item.startDate.split('-');
+                                            return `${d}/${m}/${y}`;
+                                        })()}
+                                    </p>
                                 </div>
                             </div>
                         </Card>
