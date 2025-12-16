@@ -30,6 +30,9 @@ const initialData = {
         { id: 'cat_subscription', name: 'Assinaturas', color: '#ec4899', type: 'EXPENSE' }, // Pink
         { id: 'cat_shopping', name: 'Compras', color: '#f43f5e', type: 'EXPENSE' }, // Rose
         { id: 'cat_clothing', name: 'Vestuario', color: '#d946ef', type: 'EXPENSE' }, // Fuchsia
+        { id: 'cat_pets', name: 'Yoda', color: '#a3a3a3', type: 'EXPENSE' },
+        { id: 'cat_personal_care', name: 'Cuidados pessoais', color: '#db2777', type: 'EXPENSE' },
+        { id: 'cat_pharmacy', name: 'Farmacia', color: '#ef4444', type: 'EXPENSE' }, // Red-500 similar to health
 
         // Income
         { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME' },

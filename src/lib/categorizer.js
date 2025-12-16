@@ -20,7 +20,7 @@ export class Categorizer {
         // 1. Keyword-based Rules (Description Priority)
         // Format: [Keyword, TargetCategoryName]
         const keywordRules = [
-            // Assinaturas / Subscriptions
+            // --- Assinaturas / Subscriptions ---
             ['GAMERS CLUB', 'Assinaturas'],
             ['NETFLIX', 'Assinaturas'],
             ['SMILES', 'Assinaturas'],
@@ -32,33 +32,65 @@ export class Categorizer {
             ['TV por assinatura', 'Assinaturas'],
             ['Entretenimento', 'Assinaturas'],
 
-            // Shopping
+            // --- Compras / Shopping ---
             ['AMAZON', 'Compras'],
+            ['MERCADOLIVRE', 'Compras'],
+            ['STEAM', 'Compras'],
+            ['ALIEXPRESS', 'Compras'],
             ['Departamento', 'Compras'],
             ['Desconto', 'Compras'],
 
-            // Travel
+            // --- Viagem / Travel ---
             ['AIR EUROPA', 'Viagem'],
             ['LATAM', 'Viagem'],
+            ['TAP', 'Viagem'],
+            ['JETSMART', 'Viagem'],
             ['T&E', 'Viagem'],
 
-            // Food / Supermarket
-            ['Supermercado', 'Supermercado'],
-            ['Mercearia', 'Supermercado'],
-            ['Padaria', 'Supermercado'],
-            ['Restaurante', 'Restaurante'],
-            ['Lanchonete', 'Restaurante'],
-            ['Bar', 'Restaurante'],
+            // --- Restaurantes / Food ---
+            ['RESTAURANTE', 'Restaurantes'],
+            ['BAR', 'Restaurantes'], // Matches BAR but assumes restaurant context based on user patterns
+            ['PIZZA', 'Restaurantes'],
+            ['PADARIA', 'Restaurantes'],
+            ['CERVEJEIRA', 'Restaurantes'],
+            ['Lanchonete', 'Restaurantes'],
+            ['NEMA', 'Restaurantes'],
 
-            // Services / Utilities
-            ['Telecomunica', 'Internet'], // Serviços de telecomunicações
-            ['VIVO', 'Internet'],
-            ['Farmacia', 'Health'],
-            ['Transporte', 'Transporte'],
+            // --- Supermercado / Groceries ---
+            ['SUPERMERCADO', 'Supermercado'],
+            ['MERCEARIA', 'Supermercado'],
+            ['SILVEIRA', 'Supermercado'],
+            ['ANGELONI', 'Supermercado'],
+            ['KRETZER', 'Supermercado'],
+
+            // --- Saúde e Farmácia ---
+            ['FARMACIA', 'Farmacia'],
+            ['DROGASIL', 'Farmacia'],
+            ['PANVEL', 'Farmacia'],
+            ['FARMACIAS', 'Farmacia'],
+            ['BIOLAB', 'Farmacia'],
+            ['Health', 'Farmacia'],
+
+            // --- Yoda / Pets ---
+            ['AGROVETERINARIA SC PET', 'Yoda'],
+
+            // --- Cuidados Pessoais / Personal Care ---
+            ['BARBEARIA VIP', 'Cuidados pessoais'],
+
+            // --- Vestuário / Clothing ---
+            ['VESTUARIO', 'Vestuario'],
+            ['ROUPAS', 'Vestuario'],
+            ['HERING', 'Vestuario'],
+
+            // --- Transporte / Transport ---
+            ['TRANSPORTE', 'Transporte'],
             ['UBER', 'Transporte'],
-            ['99POP', 'Transporte'], // Added common alternative
-            ['Vestuario', 'Vestuario'],
-            ['Roupas', 'Vestuario']
+            ['99POP', 'Transporte'],
+
+            // --- Internet / Telecom ---
+            ['TELECOMUNICA', 'Internet'],
+            ['VIVO', 'Internet'],
+            ['INTERNET', 'Internet']
         ];
 
         // Check Description first
