@@ -35,7 +35,7 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
 
                                         return (
                                             <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100 z-50">
-                                                <p className="text-xs text-gray-500 mb-2 font-bold uppercase">{label}</p>
+                                                <p className="text-xs text-gray-500 mb-2 font-bold uppercase">{payload[0]?.payload?.tooltipLabel || label}</p>
                                                 {sortedPayload.map((p, i) => (
                                                     <div key={i} className="flex justify-between gap-4 text-sm mb-1">
                                                         <span className="font-medium" style={{ color: p.color }}>{p.name}:</span>

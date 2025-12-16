@@ -32,6 +32,12 @@ export function CryptoPortfolio({ cryptoStats, formatCurrency, getAccountColor, 
                             <Tooltip
                                 contentStyle={{ borderRadius: '8px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                 formatter={(val) => formatCurrency(val)}
+                                labelFormatter={(label, payload) => {
+                                    if (payload && payload.length > 0 && payload[0].payload.tooltipLabel) {
+                                        return payload[0].payload.tooltipLabel;
+                                    }
+                                    return label;
+                                }}
                             />
                             {data.accounts.filter(acc => ['BTC', 'ETH', 'BNB', 'XRP'].includes(acc.currency) || acc.type === 'Crypto').map((acc, index) => (
                                 <Area

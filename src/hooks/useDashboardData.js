@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isAfter, isBefore, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useData } from '../contexts/DataContext';
 import { getFinancialsForMonth } from '../lib/financialPeriodUtils';
 
@@ -117,7 +118,8 @@ export function useDashboardData() {
         const evoData = sortedSnapshots.map(snap => {
             const point = {
                 date: snap.date,
-                name: format(parseISO(snap.date), 'MMM yy'),
+                name: format(parseISO(snap.date), 'MMM yy', { locale: ptBR }),
+                tooltipLabel: format(parseISO(snap.date), "d 'de' MMMM 'de' yyyy", { locale: ptBR }),
                 fullDate: snap.date
             };
             const cryptoPoint = { ...point }; // For crypto only chart
@@ -211,8 +213,8 @@ export function useDashboardData() {
             const d = addMonths(currentDate, i);
             months.push({
                 date: d,
-                name: format(d, 'MMM'),
-                fullName: format(d, 'MMMM'),
+                name: format(d, 'MMM', { locale: ptBR }),
+                fullName: format(d, "MMMM 'de' yyyy", { locale: ptBR }),
                 fullDate: format(d, 'yyyy-MM'),
                 expense: 0,
                 income: 0,
