@@ -212,6 +212,7 @@ export function useDashboardData() {
             months.push({
                 date: d,
                 name: format(d, 'MMM'),
+                fullName: format(d, 'MMMM'),
                 fullDate: format(d, 'yyyy-MM'),
                 expense: 0,
                 income: 0,

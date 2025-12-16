@@ -40,12 +40,16 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                                     if (active && payload && payload.length) {
                                         return (
                                             <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
-                                                <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{label}</p>
-                                                {payload.map((p, i) => (
-                                                    <p key={i} className="text-sm font-medium" style={{ color: p.color }}>
-                                                        {p.name}: {formatCurrency(p.value)}
-                                                    </p>
-                                                ))}
+                                                <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{payload[0]?.payload?.fullName || label}</p>
+                                                {payload.map((p, i) => {
+                                                    const isIncome = p.dataKey && p.dataKey.toString().startsWith('inc_');
+                                                    const typeLabel = isIncome ? 'Income' : 'Expense';
+                                                    return (
+                                                        <p key={i} className="text-sm font-medium" style={{ color: p.color }}>
+                                                            {p.name} <span className="text-xs opacity-75">({typeLabel})</span>: {formatCurrency(p.value)}
+                                                        </p>
+                                                    );
+                                                })}
                                             </div>
                                         );
                                     }
@@ -53,21 +57,35 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                                 }}
                             />
                             <Legend
-                                content={({ payload }) => (
-                                    <div className="flex flex-wrap gap-4 mt-4 justify-center">
-                                        {payload.map((entry, index) => (
-                                            <div key={`item-${index}`} className="flex items-center gap-1.5">
-                                                <div
-                                                    className="w-2 h-2 rounded-full"
-                                                    style={{ backgroundColor: entry.color }}
-                                                />
-                                                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                                                    {entry.value}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                content={({ payload }) => {
+                                    // Filter active keys
+                                    const activeKeys = new Set();
+                                    chartData.forEach(d => {
+                                        Object.keys(d).forEach(k => {
+                                            if (typeof d[k] === 'number' && d[k] > 0) {
+                                                activeKeys.add(k);
+                                            }
+                                        });
+                                    });
+
+                                    const filteredPayload = payload.filter(entry => activeKeys.has(entry.dataKey));
+
+                                    return (
+                                        <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                                            {filteredPayload.map((entry, index) => (
+                                                <div key={`item-${index}`} className="flex items-center gap-1.5">
+                                                    <div
+                                                        className="w-2 h-2 rounded-full"
+                                                        style={{ backgroundColor: entry.color }}
+                                                    />
+                                                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                                        {entry.value}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                }}
                             />
                             {/* Generate Bars for Categories */}
                             {(categories || [])
@@ -88,7 +106,7 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                             {/* Income Bar (Single or Stacked? User said Income vs Expense stacked. Usually income is one block) */}
                             {/* Let's keep Income as a separate bar stack for comparison */}
                             {(categories || [])
-                                .filter(c => c.type === 'INCOME')
+                                .filter(c => c.type === 'INCOME' || c.type === 'BOTH')
                                 .map(cat => (
                                     <Bar
                                         key={`inc_${cat.id}`}
