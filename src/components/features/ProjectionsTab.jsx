@@ -35,9 +35,38 @@ export function ProjectionsTab() {
         let currentBalance = getSnapshotTotal(latestSnapshot);
         let currentDate = new Date(latestSnapshot.date);
 
-        // Start projection from next month after snapshot? 
-        // Or if snapshot is today, start from today. 
-        // Let's iterate 12 months starting from the snapshot date.
+        // --- Calculate Average Variable Expenses (Last 3 Months) ---
+        const calculateAvgVariableExpenses = () => {
+            const today = new Date();
+            let totalVariableExpenses = 0;
+            let monthsCounted = 0;
+
+            // Look back 3 months (from previous month)
+            for (let i = 1; i <= 3; i++) {
+                const targetMonthDate = addMonths(today, -i); // e.g., Nov, Oct, Sep
+                const startM = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth(), 1);
+                const endM = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth() + 1, 0);
+
+                const monthlyVariableExpenses = data.transactions
+                    .filter(t => {
+                        const tDate = new Date(t.date);
+                        return tDate >= startM && tDate <= endM &&
+                            t.type === 'EXPENSE' &&
+                            !t.recurringTransactionId &&
+                            !t.fixedItemId;
+                    })
+                    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+                totalVariableExpenses += monthlyVariableExpenses;
+                monthsCounted++;
+            }
+
+            return monthsCounted > 0 ? totalVariableExpenses / monthsCounted : 0;
+        };
+
+        const avgVariableExpenses = calculateAvgVariableExpenses();
+
+        // -----------------------------------------------------------
 
         const dataPoints = [];
 
@@ -53,7 +82,8 @@ export function ProjectionsTab() {
             initialPrincipal: initialPrincipal,
             accumulatedSavings: 0,
             totalYield: 0,
-            total: initialPrincipal
+            total: initialPrincipal,
+            avgVariableExpenses: avgVariableExpenses // Store for reference
         });
 
         for (let i = 1; i <= 12; i++) {
@@ -67,11 +97,12 @@ export function ProjectionsTab() {
                 .filter(f => f.type === 'INCOME')
                 .reduce((sum, item) => sum + (item.amount || 0), 0);
 
-            const expense = financials
+            const recurringExpense = financials
                 .filter(f => f.type === 'EXPENSE')
                 .reduce((sum, item) => sum + (item.amount || 0), 0);
 
-            const netChange = income - expense;
+            const totalExpense = recurringExpense + avgVariableExpenses;
+            const netChange = income - totalExpense;
 
             // Calculate Yield on the TOTAL existing balance (Compound Interest)
             // Yield applies to: Principal + Previous Savings + Previous Yield
@@ -89,13 +120,16 @@ export function ProjectionsTab() {
                 initialPrincipal: initialPrincipal,
                 accumulatedSavings: accumulatedSavings,
                 totalYield: accumulatedYield,
-                total: runningBalance
+                total: runningBalance,
+                avgVariableExpenses: avgVariableExpenses,
+                monthlyIncome: income,
+                monthlyRecurringExpenses: recurringExpense
             });
         }
 
         return dataPoints;
 
-    }, [data.snapshots, data.fixedItems, data.transactions, data.fixedExpenses, yieldRate]);
+    }, [data.snapshots, data.fixedItems, data.transactions, data.fixedExpenses, yieldRate, data.recurringTransactions]);
 
 
     return (
@@ -106,7 +140,7 @@ export function ProjectionsTab() {
                         <TrendingUp className="h-8 w-8 text-primary" />
                         Financial Projections
                     </h2>
-                    <p className="text-gray-500">Forecast your wealth based on recurring patterns</p>
+                    <p className="text-gray-500">Forecast your wealth based on recurring patterns & average spending</p>
                 </div>
 
                 <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
@@ -129,7 +163,7 @@ export function ProjectionsTab() {
 
             {/* Summary Cards */}
             {projectionData.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Projected Wealth (1Y)</p>
                         <p className="text-2xl font-bold text-gray-900">
@@ -154,7 +188,16 @@ export function ProjectionsTab() {
                             {formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings)}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                            From recurring contributions
+                            Avg {formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings / 12)} / month
+                        </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1">Avg Variable exp.</p>
+                        <p className="text-2xl font-bold text-amber-600">
+                            {formatCurrency(projectionData[0].avgVariableExpenses)}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                            Based on last 3 months
                         </p>
                     </div>
                 </div>
@@ -167,27 +210,30 @@ export function ProjectionsTab() {
             {projectionData.length > 0 && (
                 <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">How is this calculated?</h4>
-                    <div className="space-y-3 text-sm text-gray-600">
-                        <p className="flex items-start gap-3">
-                            <span className="bg-white px-2 py-1 rounded border border-gray-200 font-mono text-xs font-bold text-gray-700 whitespace-nowrap">Starting Point</span>
+                    <div className="space-y-4 text-sm text-gray-600">
+                        <div className="flex items-start gap-4">
+                            <span className="bg-white px-2 py-1 rounded border border-gray-200 font-mono text-xs font-bold text-gray-700 whitespace-nowrap min-w-[120px] text-center">Starting Point</span>
                             <span>
                                 We start with your latest snapshot balance of <strong className="text-gray-900">{formatCurrency(projectionData[0].total)}</strong>.
                             </span>
-                        </p>
-                        <p className="flex items-start gap-3">
-                            <span className="bg-blue-50 px-2 py-1 rounded border border-blue-100 font-mono text-xs font-bold text-blue-700 whitespace-nowrap">Active Savings</span>
-                            <span>
-                                Based on your recurring transactions, we assume you save approximately <strong className="text-blue-700">{formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings / 12)}</strong> per month.
-                                <br />
-                                <span className="text-xs text-gray-400">(Total accumulated: {formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings)})</span>
-                            </span>
-                        </p>
-                        <p className="flex items-start gap-3">
-                            <span className="bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-mono text-xs font-bold text-emerald-700 whitespace-nowrap">Compound Yield</span>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <span className="bg-blue-50 px-2 py-1 rounded border border-blue-100 font-mono text-xs font-bold text-blue-700 whitespace-nowrap min-w-[120px] text-center">Active Savings</span>
+                            <div>
+                                <p className="mb-2">Your estimated monthly savings involves:</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>(+) Recurring Income (Avg: {formatCurrency(projectionData[1]?.monthlyIncome || 0)})</li>
+                                    <li>(-) Recurring Expenses (Avg: {formatCurrency(projectionData[1]?.monthlyRecurringExpenses || 0)})</li>
+                                    <li>(-) <strong>Avg Variable Expenses ({formatCurrency(projectionData[0].avgVariableExpenses)})</strong> <span className="text-xs text-amber-600 bg-amber-50 px-1 rounded">(Calculated from last 3 months non-recurring spend)</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <span className="bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-mono text-xs font-bold text-emerald-700 whitespace-nowrap min-w-[120px] text-center">Compound Yield</span>
                             <span>
                                 A monthly yield of <strong className="text-emerald-700">{yieldRate}%</strong> is applied to your <strong>entire balance</strong> (Principal + Savings) at the end of each month.
                             </span>
-                        </p>
+                        </div>
                     </div>
                 </div>
             )}
