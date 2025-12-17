@@ -7,7 +7,7 @@ import { FinancialItemModal } from '../calendar/FinancialItemModal';
 import { RecurringTransactionsList } from './RecurringTransactionsList';
 import { ImportDialog } from '../calendar/ImportDialog';
 import { parsePicPayPDF } from '../../lib/picpayParser';
-import { parseTransactionsCSV } from '../../lib/csvParser';
+import { parseTransactionsCSV, parseXpCSV } from '../../lib/csvParser';
 
 export function CalendarTab() {
     const {
@@ -41,6 +41,9 @@ export function CalendarTab() {
         if (source === 'c6') {
             const text = await file.text();
             result = parseTransactionsCSV(text);
+        } else if (source === 'xp') {
+            const text = await file.text();
+            result = parseXpCSV(text);
         } else if (source === 'picpay') {
             result = await parsePicPayPDF(file);
         }

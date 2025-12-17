@@ -37,7 +37,7 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
     };
 
     const getAcceptType = () => {
-        if (source === 'c6') return '.csv';
+        if (source === 'c6' || source === 'xp') return '.csv';
         if (source === 'picpay') return '.pdf';
         return '';
     };
@@ -50,7 +50,7 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
             className="sm:max-w-[425px]"
         >
             {!source ? (
-                <div className="grid grid-cols-2 gap-4 py-4">
+                <div className="grid grid-cols-3 gap-4 py-4">
                     <button
                         onClick={() => setSource('c6')}
                         className="flex flex-col items-center justify-center space-y-4 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 hover:border-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -60,6 +60,19 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
                         </div>
                         <div className="text-center">
                             <h3 className="font-medium text-gray-900">C6 Bank</h3>
+                            <p className="text-sm text-gray-500">Import CSV</p>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => setSource('xp')}
+                        className="flex flex-col items-center justify-center space-y-4 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 hover:border-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    >
+                        <div className="rounded-full bg-yellow-500/10 p-4">
+                            <CreditCard className="h-8 w-8 text-yellow-600" />
+                        </div>
+                        <div className="text-center">
+                            <h3 className="font-medium text-gray-900">XP Inv.</h3>
                             <p className="text-sm text-gray-500">Import CSV</p>
                         </div>
                     </button>
@@ -84,7 +97,7 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
                             Select Source
                         </button>
                         <span>/</span>
-                        <span className="font-medium text-foreground">{source === 'c6' ? 'C6 Bank' : 'PicPay'}</span>
+                        <span className="font-medium text-foreground">{source === 'c6' ? 'C6 Bank' : source === 'xp' ? 'XP Investimentos' : 'PicPay'}</span>
                     </div>
 
                     <div
@@ -117,7 +130,7 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
                             <div className="space-y-2">
                                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                                 <p className="text-sm font-medium text-gray-900">
-                                    Click to upload {source === 'c6' ? 'CSV' : 'PDF'}
+                                    Click to upload {source === 'picpay' ? 'PDF' : 'CSV'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     or drag and drop

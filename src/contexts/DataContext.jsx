@@ -33,6 +33,7 @@ const initialData = {
         { id: 'cat_pets', name: 'Yoda', color: '#a3a3a3', type: 'EXPENSE' },
         { id: 'cat_personal_care', name: 'Cuidados pessoais', color: '#db2777', type: 'EXPENSE' },
         { id: 'cat_pharmacy', name: 'Farmacia', color: '#ef4444', type: 'EXPENSE' }, // Red-500 similar to health
+        { id: 'cat_car', name: 'Carro', color: '#28c5f5ff', type: 'EXPENSE' },
 
         // Income
         { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME' },

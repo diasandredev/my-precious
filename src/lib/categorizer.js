@@ -31,6 +31,8 @@ export class Categorizer {
             ['HBOMAX', 'Assinaturas'],
             ['TV por assinatura', 'Assinaturas'],
             ['Entretenimento', 'Assinaturas'],
+            ['GOOGLE ONE', 'Assinaturas'],
+            ['IFOOD CLUB', 'Assinaturas'],
 
             // --- Compras / Shopping ---
             ['AMAZON', 'Compras'],
@@ -39,6 +41,7 @@ export class Categorizer {
             ['ALIEXPRESS', 'Compras'],
             ['Departamento', 'Compras'],
             ['Desconto', 'Compras'],
+            ['SHOP', 'Compras'],
 
             // --- Viagem / Travel ---
             ['AIR EUROPA', 'Viagem'],
@@ -46,6 +49,7 @@ export class Categorizer {
             ['TAP', 'Viagem'],
             ['JETSMART', 'Viagem'],
             ['T&E', 'Viagem'],
+            ['AIRBNB', 'Viagem'],
 
             // --- Restaurantes / Food ---
             ['RESTAURANTE', 'Restaurantes'],
@@ -62,6 +66,8 @@ export class Categorizer {
             ['SILVEIRA', 'Supermercado'],
             ['ANGELONI', 'Supermercado'],
             ['KRETZER', 'Supermercado'],
+            ['FEIRA', 'Supermercado'],
+            ['PANIFICACAO', 'Supermercado'],
 
             // --- Saúde e Farmácia ---
             ['FARMACIA', 'Farmacia'],
@@ -76,16 +82,23 @@ export class Categorizer {
 
             // --- Cuidados Pessoais / Personal Care ---
             ['BARBEARIA VIP', 'Cuidados pessoais'],
+            ['ERNANI', 'Cuidados pessoais'],
 
             // --- Vestuário / Clothing ---
             ['VESTUARIO', 'Vestuario'],
             ['ROUPAS', 'Vestuario'],
             ['HERING', 'Vestuario'],
+            ['ZARA', 'Vestuario'],
+            ['COTTON ON', 'Vestuario'],
+            ['LOUNGERIE', 'Vestuario'],
 
             // --- Transporte / Transport ---
             ['TRANSPORTE', 'Transporte'],
             ['UBER', 'Transporte'],
             ['99POP', 'Transporte'],
+
+            // --- Carro ---
+            ['POSTO', 'Carro'],
 
             // --- Internet / Telecom ---
             ['TELECOMUNICA', 'Internet'],
