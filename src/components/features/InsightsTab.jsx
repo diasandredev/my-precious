@@ -136,27 +136,37 @@ export function InsightsTab() {
     };
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto pb-12">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">Financial Insights</h1>
+        <div className="space-y-6 max-w-full mx-auto pb-12">
 
-                {/* Month Navigation */}
-                <div className="flex items-center gap-4 bg-white p-2 rounded-lg border shadow-sm">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <TrendingUp className="h-6 w-6" />
+                        Financial Insights
+                    </h1>
+                    <p className="text-gray-500 mt-1">Analyze your spending patterns and discover trends</p>
+                </div>
+
+                {/* Right Side: Month Navigation (Styled like Projections controls) */}
+                <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
                     <button
                         onClick={() => navigateMonth(1)}
                         disabled={selectedMonthIndex >= monthlyStats.length - 1}
-                        className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-30 transition-colors"
+                        className="p-1.5 hover:bg-gray-100 rounded-md disabled:opacity-30 text-gray-500 transition-colors"
                         aria-label="Previous Month"
                     >
                         <ArrowLeft className="h-4 w-4" />
                     </button>
-                    <span className="font-medium min-w-[120px] text-center capitalize">
+
+                    <span className="font-semibold text-sm text-gray-700 min-w-[140px] text-center capitalize select-none">
                         {format(currentMonthData.date, 'MMMM yyyy', { locale: ptBR })}
                     </span>
+
                     <button
                         onClick={() => navigateMonth(-1)}
                         disabled={selectedMonthIndex <= 0}
-                        className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-30 transition-colors"
+                        className="p-1.5 hover:bg-gray-100 rounded-md disabled:opacity-30 text-gray-500 transition-colors"
                         aria-label="Next Month"
                     >
                         <ArrowRight className="h-4 w-4" />
