@@ -144,6 +144,9 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             const prevAmount = prevMonth.categories[catId] || 0;
             const catName = categories.find(c => c.id === catId)?.name || 'Unknown Category';
 
+            let momInsight = null;
+            let avgInsight = null;
+
             // A. Spike/Drop Detection (vs Last Month)
             const diff = currentAmount - prevAmount;
 
@@ -152,7 +155,7 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                 const pctChange = (diff / prevAmount) * 100;
                 const severityInfo = determineSeverity(pctChange, diff);
                 if (severityInfo) {
-                    insights.push({
+                    momInsight = {
                         type: severityInfo.type,
                         title: `${catName} Increase`,
                         message: `Spending on ${catName} increased by ${pctChange.toFixed(0)}% vs last month (was ${formatCurrency(prevAmount)}).`,
@@ -160,7 +163,7 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                         severity: severityInfo.severity,
                         categoryId: catId,
                         comparisonType: 'month_over_month'
-                    });
+                    };
                 }
             }
             // DECREASE Logic (Good)
@@ -168,30 +171,21 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                 const pctDecrease = Math.abs((diff / prevAmount) * 100);
                 const absDiff = Math.abs(diff);
 
-                // Apply similar filters for "Good" to match "Warning/Alert" threshold logic (symmetrical)
-                // Ignore if < 10% AND < 100 BRL
-                // Ignore if < 5% always
-
                 let isSignificantDrop = false;
                 if (pctDecrease >= 10 || (pctDecrease >= 5 && absDiff >= 100)) {
                     isSignificantDrop = true;
                 }
 
-                // Also ensure absolute saving is somewhat meaningful (> 50?) or stick to the 100 rule?
-                // User said "seguindo as mesmas logicas".
-                // Logic was: < 5% ignore. < 10% ignore unless > 100.
-                if (pctDecrease >= 5) {
-                    if (pctDecrease >= 10 || absDiff >= 100) {
-                        insights.push({
-                            type: 'good',
-                            title: `${catName} Decrease`,
-                            message: `Spending on ${catName} decreased by ${pctDecrease.toFixed(0)}% vs last month (was ${formatCurrency(prevAmount)}).`,
-                            amount: absDiff,
-                            severity: 'low',
-                            categoryId: catId,
-                            comparisonType: 'month_over_month'
-                        });
-                    }
+                if (isSignificantDrop) {
+                    momInsight = {
+                        type: 'good',
+                        title: `${catName} Decrease`,
+                        message: `Spending on ${catName} decreased by ${pctDecrease.toFixed(0)}% vs last month.`,
+                        amount: absDiff,
+                        severity: 'low',
+                        categoryId: catId,
+                        comparisonType: 'month_over_month'
+                    };
                 }
             }
 
@@ -200,6 +194,7 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             let count = 0;
             for (let i = 1; i <= 3; i++) {
                 const histMonth = historyStats[currentIndex + i];
+                // STRICT CHECK
                 if (histMonth && histMonth.categories[catId] > 0) {
                     sum += histMonth.categories[catId];
                     count++;
@@ -216,16 +211,16 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                     const severityInfo = determineSeverity(pctAboveAvg, diffAvg);
 
                     if (severityInfo) {
-                        insights.push({
+                        avgInsight = {
                             type: severityInfo.type,
                             title: `${catName} Above Average`,
-                            message: `Your ${catName} spending is ${pctAboveAvg.toFixed(0)}% higher than the 3-month average (Avg: ${formatCurrency(average)}).`,
+                            message: `Spending is ${pctAboveAvg.toFixed(0)}% higher than the 3-month average (${formatCurrency(average)}).`,
                             amount: diffAvg,
                             severity: severityInfo.severity,
                             categoryId: catId,
                             comparisonType: 'average',
                             isProjected: currentMonth.isProjected
-                        });
+                        };
                     }
                 }
                 // DECREASE (< Average)
@@ -233,22 +228,56 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                     const absDiffAvg = Math.abs(diffAvg);
                     const pctBelowAvg = (absDiffAvg / average) * 100;
 
-                    // Filter Logic
                     if (pctBelowAvg >= 5) { // Min 5%
                         if (pctBelowAvg >= 10 || absDiffAvg >= 100) {
-                            insights.push({
+                            avgInsight = {
                                 type: 'good',
                                 title: `${catName} Below Average`,
-                                message: `Your ${catName} spending is ${pctBelowAvg.toFixed(0)}% lower than the 3-month average (Avg: ${formatCurrency(average)}).`,
+                                message: `Spending is ${pctBelowAvg.toFixed(0)}% lower than average (${formatCurrency(average)}).`,
                                 amount: absDiffAvg,
                                 severity: 'low',
                                 categoryId: catId,
                                 comparisonType: 'average',
                                 isProjected: currentMonth.isProjected
-                            });
+                            };
                         }
                     }
                 }
+            }
+
+            // MERGE LOGIC
+            if (momInsight && avgInsight) {
+                // Determine dominant type (Alert > Warning > Good)
+                const severityScore = { 'alert': 3, 'warning': 2, 'good': 1 };
+                const momScore = severityScore[momInsight.type] || 0;
+                const avgScore = severityScore[avgInsight.type] || 0;
+
+                // Use the higher severity base
+                const base = momScore >= avgScore ? momInsight : avgInsight;
+                const secondary = momScore >= avgScore ? avgInsight : momInsight;
+
+                // Combined Message
+                // "Spending ... increased by X% vs last month. It is also Y% higher than average."
+                const combinedMessage = `${momInsight.message} It is also ${avgInsight.message.replace('Spending is ', '').replace('Your ' + catName + ' spending is ', '')}`;
+
+                insights.push({
+                    ...base,
+                    message: combinedMessage,
+                    comparisonType: 'average', // Always use average to show full history context
+                    title: `${catName} Trends` // Generic title? Or keep specific? User asked to unify.
+                    // Maybe `${catName}: ${momInsight.type === avgInsight.type ? (momInsight.type === 'good' ? 'Savings' : 'High Spending') : 'Analysis'}`
+                    // Let's rely on the base title but maybe simplify?
+                    // "Compras Decrease" + "Compras Below Average" -> "Compras Savings"?
+                    // Let's use "Trends" or "Analysis" to be safe, or just the Category Name.
+                    // Actually "Title" is prominent.
+                    // If both are Good -> "Savings on CatName"
+                    // If both are Bad -> "High Spending on CatName"
+                    // If mixed -> "CatName Analysis"
+                });
+            } else if (momInsight) {
+                insights.push(momInsight);
+            } else if (avgInsight) {
+                insights.push(avgInsight);
             }
         });
 
