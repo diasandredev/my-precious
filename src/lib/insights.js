@@ -144,13 +144,13 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             const prevAmount = prevMonth.categories[catId] || 0;
             const catName = categories.find(c => c.id === catId)?.name || 'Unknown Category';
 
-            // A. Spike Detection (vs Last Month)
+            // A. Spike/Drop Detection (vs Last Month)
             const diff = currentAmount - prevAmount;
-            if (currentAmount > 100 && diff > 0 && prevAmount > 0) { // Baseline filter > 100 and prev > 0 to avoid "100% from 0"
+
+            // INCREASE Logic (Spike)
+            if (currentAmount > 100 && diff > 0 && prevAmount > 0) {
                 const pctChange = (diff / prevAmount) * 100;
-
                 const severityInfo = determineSeverity(pctChange, diff);
-
                 if (severityInfo) {
                     insights.push({
                         type: severityInfo.type,
@@ -163,14 +163,43 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                     });
                 }
             }
+            // DECREASE Logic (Good)
+            else if (diff < 0 && prevAmount > 0) {
+                const pctDecrease = Math.abs((diff / prevAmount) * 100);
+                const absDiff = Math.abs(diff);
+
+                // Apply similar filters for "Good" to match "Warning/Alert" threshold logic (symmetrical)
+                // Ignore if < 10% AND < 100 BRL
+                // Ignore if < 5% always
+
+                let isSignificantDrop = false;
+                if (pctDecrease >= 10 || (pctDecrease >= 5 && absDiff >= 100)) {
+                    isSignificantDrop = true;
+                }
+
+                // Also ensure absolute saving is somewhat meaningful (> 50?) or stick to the 100 rule?
+                // User said "seguindo as mesmas logicas".
+                // Logic was: < 5% ignore. < 10% ignore unless > 100.
+                if (pctDecrease >= 5) {
+                    if (pctDecrease >= 10 || absDiff >= 100) {
+                        insights.push({
+                            type: 'good',
+                            title: `${catName} Decrease`,
+                            message: `Spending on ${catName} decreased by ${pctDecrease.toFixed(0)}% vs last month (was ${formatCurrency(prevAmount)}).`,
+                            amount: absDiff,
+                            severity: 'low',
+                            categoryId: catId,
+                            comparisonType: 'month_over_month'
+                        });
+                    }
+                }
+            }
 
             // B. 3-Month Moving Average
-            // We need months: currentIndex+1, currentIndex+2, currentIndex+3
             let sum = 0;
             let count = 0;
             for (let i = 1; i <= 3; i++) {
                 const histMonth = historyStats[currentIndex + i];
-                // STRICT CHECK: Only consider month if category spend > 0
                 if (histMonth && histMonth.categories[catId] > 0) {
                     sum += histMonth.categories[catId];
                     count++;
@@ -179,26 +208,45 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
 
             if (count >= 3) {
                 const average = sum / count;
-                // Insight Condition: Current > Average significantly
-                if (currentAmount > 100 && currentAmount > average) {
-                    const diffAvg = currentAmount - average;
-                    const pctAboveAvg = average > 0 ? (diffAvg / average) * 100 : 100;
+                const diffAvg = currentAmount - average;
 
+                // INCREASE (> Average)
+                if (currentAmount > 100 && currentAmount > average) {
+                    const pctAboveAvg = average > 0 ? (diffAvg / average) * 100 : 100;
                     const severityInfo = determineSeverity(pctAboveAvg, diffAvg);
 
                     if (severityInfo) {
                         insights.push({
                             type: severityInfo.type,
                             title: `${catName} Above Average`,
-                            message: average > 0
-                                ? `Your ${catName} spending is ${pctAboveAvg.toFixed(0)}% higher than the 3-month average (Avg: ${formatCurrency(average)}).`
-                                : `Your ${catName} spending is unusually high compared to the last 3 months (avg: 0).`,
+                            message: `Your ${catName} spending is ${pctAboveAvg.toFixed(0)}% higher than the 3-month average (Avg: ${formatCurrency(average)}).`,
                             amount: diffAvg,
                             severity: severityInfo.severity,
-                            categoryId: catId, // Added for drill-down
+                            categoryId: catId,
                             comparisonType: 'average',
-                            isProjected: currentMonth.isProjected // Optional flag to pass through
+                            isProjected: currentMonth.isProjected
                         });
+                    }
+                }
+                // DECREASE (< Average)
+                else if (currentAmount < average) {
+                    const absDiffAvg = Math.abs(diffAvg);
+                    const pctBelowAvg = (absDiffAvg / average) * 100;
+
+                    // Filter Logic
+                    if (pctBelowAvg >= 5) { // Min 5%
+                        if (pctBelowAvg >= 10 || absDiffAvg >= 100) {
+                            insights.push({
+                                type: 'good',
+                                title: `${catName} Below Average`,
+                                message: `Your ${catName} spending is ${pctBelowAvg.toFixed(0)}% lower than the 3-month average (Avg: ${formatCurrency(average)}).`,
+                                amount: absDiffAvg,
+                                severity: 'low',
+                                categoryId: catId,
+                                comparisonType: 'average',
+                                isProjected: currentMonth.isProjected
+                            });
+                        }
                     }
                 }
             }

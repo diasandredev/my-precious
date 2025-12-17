@@ -225,7 +225,7 @@ export function InsightsTab() {
                                         <div className="flex items-center gap-2 text-emerald-600">
                                             <TrendingDown className="h-5 w-5" />
                                             <span className="font-medium">
-                                                {insights.filter(i => i.type === 'good').length} categories under budget
+                                                {insights.filter(i => i.type === 'good').length} Positive highlights
                                             </span>
                                         </div>
                                     )}
