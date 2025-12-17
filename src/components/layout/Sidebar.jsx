@@ -1,7 +1,11 @@
+import React from 'react';
 import { LayoutDashboard, Wallet, TrendingUp, Calendar as CalendarIcon, Bell, Settings, LogOut, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import logo from '../../assets/logo.png';
 import { logout } from '../../services/auth';
+import { useData } from '../../contexts/DataContext';
+import { analyzeTrends, calculateMonthlyExpenses } from '../../lib/insights';
+import { format } from 'date-fns';
 
 export function Sidebar({ activeTab, onTabChange }) {
     const handleLogout = async () => {
@@ -13,12 +17,47 @@ export function Sidebar({ activeTab, onTabChange }) {
         }
     };
 
+    const { data } = useData();
+
+    // Calculate Alerts for Badge
+    const alertCount = React.useMemo(() => {
+        if (!data.transactions.length) return null; // Return null instead of 0 for no badge
+
+        const now = new Date();
+        const currentMonthExpenses = calculateMonthlyExpenses(data.transactions);
+        const currentMonthStr = format(now, 'yyyy-MM');
+        const currentIndex = currentMonthExpenses.findIndex(m => m.month === currentMonthStr);
+
+        if (currentIndex === -1) return null;
+
+        const currentMonthData = currentMonthExpenses[currentIndex];
+
+        const insights = analyzeTrends(
+            currentMonthData,
+            currentMonthExpenses,
+            currentIndex,
+            data.categories
+        );
+
+        const counts = {
+            alert: insights.filter(i => i.type === 'alert').length,
+            warning: insights.filter(i => i.type === 'warning').length,
+            good: insights.filter(i => i.type === 'good').length
+        };
+
+        // Return null if all are 0? Or always show if data exists?
+        // User screenshot shows counts.
+        if (counts.alert === 0 && counts.warning === 0 && counts.good === 0) return null;
+
+        return counts;
+    }, [data.transactions, data.categories]);
+
     const menuItems = {
         main: [
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'accounts', label: 'Accounts', icon: Wallet },
             { id: 'projections', label: 'Projections', icon: TrendingUp },
-            { id: 'insights', label: 'Insights', icon: Lightbulb },
+            { id: 'insights', label: 'Insights', icon: Lightbulb, badge: alertCount },
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
         ],
         personal: [
@@ -38,7 +77,34 @@ export function Sidebar({ activeTab, onTabChange }) {
             )}
         >
             <item.icon size={20} className={isActive ? "text-black" : "text-gray-400"} strokeWidth={isActive ? 2.5 : 2} />
-            <span>{item.label}</span>
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.badge && (
+                typeof item.badge === 'object' ? (
+                    <div className="flex items-center h-5 rounded-md overflow-hidden text-[10px] font-bold min-w-fit">
+                        {item.badge.alert > 0 && (
+                            <span className="bg-red-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
+                                {item.badge.alert}
+                            </span>
+                        )}
+                        {item.badge.warning > 0 && (
+                            <span className="bg-amber-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
+                                {item.badge.warning}
+                            </span>
+                        )}
+                        {item.badge.good > 0 && (
+                            <span className="bg-emerald-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
+                                {item.badge.good}
+                            </span>
+                        )}
+                    </div>
+                ) : (
+                    typeof item.badge === 'number' && item.badge > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                            {item.badge}
+                        </span>
+                    )
+                )
+            )}
         </button>
     );
 

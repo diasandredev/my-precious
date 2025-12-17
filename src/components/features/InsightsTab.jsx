@@ -7,7 +7,7 @@ import { CategoryTrendChart } from '../insights/CategoryTrendChart';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 
 export function InsightsTab() {
     const { data, formatCurrency } = useData();
@@ -99,7 +99,17 @@ export function InsightsTab() {
     }, [selectedMonthIndex, monthlyStats, data.recurringTransactions, data.transactions, data.fixedExpenses]);
 
     const insights = useMemo(() => {
-        return analyzeTrends(currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency);
+        const result = analyzeTrends(currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency);
+
+        const getScore = (insight) => {
+            const t = insight?.type?.toLowerCase();
+            if (t === 'alert') return 0;
+            if (t === 'warning') return 1;
+            if (t === 'good') return 2;
+            return 3; // Info or others
+        };
+
+        return result.sort((a, b) => getScore(a) - getScore(b));
     }, [currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency]);
 
 
@@ -172,7 +182,6 @@ export function InsightsTab() {
                     </CardContent>
                 </Card>
 
-                {/* Placeholder for future specific metrics like "Daily Average" */}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-gray-500">Top Category</CardTitle>
@@ -187,18 +196,50 @@ export function InsightsTab() {
                     </CardContent>
                 </Card>
 
+                {/* Trend Analysis Card */}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-gray-500">Trend Analysis</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-sm">
-                            {insights.length > 0
-                                ? <span className="text-amber-600 font-medium">{insights.length} alerts detected</span>
-                                : <span className="text-emerald-600 font-medium">Spending looks normal</span>
-                            }
+                        <div className="space-y-4">
+                            {insights.length > 0 ? (
+                                <>
+                                    {insights.filter(i => i.type === 'alert').length > 0 && (
+                                        <div className="flex items-center gap-2 text-red-600">
+                                            <TrendingUp className="h-5 w-5" />
+                                            <span className="font-semibold">
+                                                {insights.filter(i => i.type === 'alert').length} Critical Alerts
+                                            </span>
+                                        </div>
+                                    )}
+                                    {insights.filter(i => i.type === 'warning').length > 0 && (
+                                        <div className="flex items-center gap-2 text-amber-600">
+                                            <AlertTriangle className="h-5 w-5" />
+                                            <span className="font-semibold">
+                                                {insights.filter(i => i.type === 'warning').length} Warnings
+                                            </span>
+                                        </div>
+                                    )}
+                                    {insights.filter(i => i.type === 'good').length > 0 && (
+                                        <div className="flex items-center gap-2 text-emerald-600">
+                                            <TrendingDown className="h-5 w-5" />
+                                            <span className="font-medium">
+                                                {insights.filter(i => i.type === 'good').length} categories under budget
+                                            </span>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="flex items-center gap-2 text-emerald-600">
+                                    <TrendingDown className="h-5 w-5" />
+                                    <span className="font-medium">Spending looks normal</span>
+                                </div>
+                            )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">based on historical patterns</p>
+                        <p className="text-xs text-gray-400 mt-4 pt-4 border-t border-gray-100">
+                            based on historical patterns
+                        </p>
                     </CardContent>
                 </Card>
             </div>
@@ -310,27 +351,32 @@ export function InsightsTab() {
                     </div>
                 </div>
 
-                {/* 3. Top Categories Chart (Right 1/3) */}
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Spending</h3>
-                    <Card className="h-full">
-                        <CardContent className="pt-6">
-                            <CategoryTrendChart data={topCategories} formatCurrency={formatCurrency} />
-                            <div className="mt-4 space-y-3">
-                                {topCategories.map(cat => (
-                                    <div key={cat.id} className="flex items-center justify-between text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                                            <span>{cat.name}</span>
+                {/* 3. Right Sidebar (Top Spending Only) */}
+                <div className="space-y-6 lg:sticky lg:top-8 h-fit">
+
+
+                    {/* Top Spending Card */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Spending</h3>
+                        <Card className="h-full">
+                            <CardContent className="pt-6">
+                                <CategoryTrendChart data={topCategories} formatCurrency={formatCurrency} />
+                                <div className="mt-4 space-y-3">
+                                    {topCategories.map(cat => (
+                                        <div key={cat.id} className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                                <span>{cat.name}</span>
+                                            </div>
+                                            <span className="font-medium">{formatCurrency(cat.amount)}</span>
                                         </div>
-                                        <span className="font-medium">{formatCurrency(cat.amount)}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

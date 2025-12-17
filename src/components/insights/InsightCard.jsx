@@ -8,18 +8,20 @@ export function InsightCard({ insight, formatCurrency, isExpanded, onToggle, com
 
     const getIcon = () => {
         switch (type) {
-            case 'warning': return <TrendingUp className="h-5 w-5 text-red-500" />;
+            case 'alert': return <TrendingUp className="h-5 w-5 text-red-600" />;
+            case 'warning': return <TrendingUp className="h-5 w-5 text-amber-500" />;
             case 'good': return <TrendingDown className="h-5 w-5 text-green-500" />;
             case 'info': return <Info className="h-5 w-5 text-blue-500" />;
-            default: return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+            default: return <AlertTriangle className="h-5 w-5 text-gray-500" />;
         }
     };
 
     const getBgColor = () => {
         switch (type) {
-            case 'warning': return 'bg-red-50 border-red-100';
-            case 'good': return 'bg-green-50 border-green-100';
-            case 'info': return 'bg-blue-50 border-blue-100';
+            case 'alert': return 'bg-red-50 border-red-100 hover:border-red-200';
+            case 'warning': return 'bg-amber-50 border-amber-100 hover:border-amber-200';
+            case 'good': return 'bg-green-50 border-green-100 hover:border-green-200';
+            case 'info': return 'bg-blue-50 border-blue-100 hover:border-blue-200';
             default: return 'bg-gray-50 border-gray-100';
         }
     };

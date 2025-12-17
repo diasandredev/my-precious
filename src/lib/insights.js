@@ -83,18 +83,50 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
 
     if (!prevMonth) return insights;
 
+    // Helper: Determine Insight Type & Severity
+    // Helper: Determine Insight Type & Severity
+    const determineSeverity = (pctChange, diffAmount) => {
+        // 1. FILTERS (Ignore noise)
+        // Rule: Increases < 5% are NOT warnings (ignore)
+        if (pctChange < 5) return null;
+
+        // Rule: Increases < 10% are only valid if > R$ 100
+        if (pctChange < 10 && diffAmount < 100) return null;
+
+        // 2. HIGH VALUE OVERRIDE
+        // Absolute increase > 1000 -> Always Critical Alert
+        if (diffAmount > 1000) return { type: 'alert', severity: 'high' };
+
+        // 3. SEVERITY CLASSIFICATION
+        // Prevent "Alert" for small absolute values (< 200), max them at Warning
+        const isSmallAmount = diffAmount < 200;
+
+        if (pctChange >= 50 && !isSmallAmount) return { type: 'alert', severity: 'high' };
+
+        // Default to Warning for anything else that passed the filters
+        // This includes:
+        // - pct >= 20%
+        // - pct 5-19% (if passed the >100 filter)
+        // - Any > 50% that was "small amount"
+        return { type: 'warning', severity: 'medium' };
+    };
+
     // 1. Total Spend Comparison
     const totalDiff = currentMonth.total - prevMonth.total;
     const totalPercentChange = prevMonth.total > 0 ? (totalDiff / prevMonth.total) * 100 : 100;
 
-    if (totalPercentChange > 20 && totalDiff > 500) {
-        insights.push({
-            type: 'warning',
-            title: 'Spending Spike',
-            message: `Spending is ${totalPercentChange.toFixed(0)}% higher than last month (was ${formatCurrency(prevMonth.total)}).`,
-            amount: totalDiff,
-            severity: 'high'
-        });
+    if (totalDiff > 0) {
+        const severityInfo = determineSeverity(totalPercentChange, totalDiff);
+        if (severityInfo) {
+            insights.push({
+                type: severityInfo.type,
+                title: 'Spending Spike',
+                message: `Spending is ${totalPercentChange.toFixed(0)}% higher than last month (was ${formatCurrency(prevMonth.total)}).`,
+                amount: totalDiff,
+                severity: severityInfo.severity,
+                comparisonType: 'month_over_month'
+            });
+        }
     } else if (totalPercentChange < -10) {
         insights.push({
             type: 'good',
@@ -114,15 +146,18 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
 
             // A. Spike Detection (vs Last Month)
             const diff = currentAmount - prevAmount;
-            if (currentAmount > 200 && diff > 0 && prevAmount > 0) {
+            if (currentAmount > 100 && diff > 0 && prevAmount > 0) { // Baseline filter > 100 and prev > 0 to avoid "100% from 0"
                 const pctChange = (diff / prevAmount) * 100;
-                if (pctChange > 30) {
+
+                const severityInfo = determineSeverity(pctChange, diff);
+
+                if (severityInfo) {
                     insights.push({
-                        type: 'warning',
+                        type: severityInfo.type,
                         title: `${catName} Increase`,
                         message: `Spending on ${catName} increased by ${pctChange.toFixed(0)}% vs last month (was ${formatCurrency(prevAmount)}).`,
                         amount: diff,
-                        severity: 'medium',
+                        severity: severityInfo.severity,
                         categoryId: catId,
                         comparisonType: 'month_over_month'
                     });
@@ -135,34 +170,36 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             let count = 0;
             for (let i = 1; i <= 3; i++) {
                 const histMonth = historyStats[currentIndex + i];
-                if (histMonth && histMonth.categories[catId]) {
+                // STRICT CHECK: Only consider month if category spend > 0
+                if (histMonth && histMonth.categories[catId] > 0) {
                     sum += histMonth.categories[catId];
-                    count++;
-                } else if (histMonth) {
-                    // Month exists but no spend in this category -> counts as 0
                     count++;
                 }
             }
 
             if (count >= 3) {
                 const average = sum / count;
-                // Insight Condition: Current > Average * 1.15 (15% higher than average)
-                // And significant amount (> 100)
-                if (currentAmount > 100 && currentAmount > average * 1.15) {
-                    const pctAboveAvg = average > 0 ? ((currentAmount - average) / average) * 100 : 100;
+                // Insight Condition: Current > Average significantly
+                if (currentAmount > 100 && currentAmount > average) {
+                    const diffAvg = currentAmount - average;
+                    const pctAboveAvg = average > 0 ? (diffAvg / average) * 100 : 100;
 
-                    insights.push({
-                        type: 'warning',
-                        title: `${catName} Above Average`,
-                        message: average > 0
-                            ? `Your ${catName} spending is ${pctAboveAvg.toFixed(0)}% higher than the 3-month average (Avg: ${formatCurrency(average)}).`
-                            : `Your ${catName} spending is unusually high compared to the last 3 months (avg: 0).`,
-                        amount: currentAmount - average,
-                        severity: 'medium',
-                        categoryId: catId, // Added for drill-down
-                        comparisonType: 'average',
-                        isProjected: currentMonth.isProjected // Optional flag to pass through
-                    });
+                    const severityInfo = determineSeverity(pctAboveAvg, diffAvg);
+
+                    if (severityInfo) {
+                        insights.push({
+                            type: severityInfo.type,
+                            title: `${catName} Above Average`,
+                            message: average > 0
+                                ? `Your ${catName} spending is ${pctAboveAvg.toFixed(0)}% higher than the 3-month average (Avg: ${formatCurrency(average)}).`
+                                : `Your ${catName} spending is unusually high compared to the last 3 months (avg: 0).`,
+                            amount: diffAvg,
+                            severity: severityInfo.severity,
+                            categoryId: catId, // Added for drill-down
+                            comparisonType: 'average',
+                            isProjected: currentMonth.isProjected // Optional flag to pass through
+                        });
+                    }
                 }
             }
         });
