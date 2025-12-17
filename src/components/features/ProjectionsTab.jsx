@@ -76,13 +76,38 @@ export function ProjectionsTab() {
         let accumulatedSavings = 0;
         let accumulatedYield = 0;
 
+        // --- GAP CALCULATION (Snapshot Date -> End of Month) ---
+        // Capture any income/expenses that happen AFTER the snapshot but BEFORE the next month starts.
+        // This ensures "future bonus income" in the current month is included.
+        const gapFinancials = getFinancialsForMonth(currentDate, data.recurringTransactions, data.transactions, data.fixedExpenses);
+
+        let gapIncome = 0;
+        let gapExpense = 0;
+
+        gapFinancials.forEach(item => {
+            const itemDate = new Date(item.date);
+            // Only count items AFTER the snapshot date
+            if (itemDate > currentDate) {
+                if (item.type === 'INCOME') {
+                    gapIncome += (item.amount || 0);
+                } else if (item.type === 'EXPENSE') {
+                    gapExpense += (item.amount || 0);
+                }
+            }
+        });
+
+        const gapNet = gapIncome - gapExpense;
+        accumulatedSavings += gapNet;
+        runningBalance += gapNet;
+        // -------------------------------------------------------
+
         // Initial Point
         dataPoints.push({
             month: format(currentDate, 'MMM yy'),
             initialPrincipal: initialPrincipal,
-            accumulatedSavings: 0,
+            accumulatedSavings: accumulatedSavings, // Includes gap savings
             totalYield: 0,
-            total: initialPrincipal,
+            total: runningBalance,
             avgVariableExpenses: avgVariableExpenses // Store for reference
         });
 
