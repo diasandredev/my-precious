@@ -163,7 +163,7 @@ export function getFinancialsForMonth(currentMonthDate, recurringTransactions = 
                 ...t,
                 name: t.name || t.title, // Ensure name is populated
                 date: tDate,
-                status: t.status || (t.isPaid ? 'PAID' : 'PENDING'), // Prioritize existing status
+                status: t.status === 'PAID' ? 'CONFIRMED' : (t.status || (t.isPaid ? 'CONFIRMED' : 'PROJECTED')), // Prioritize existing status, migrate PAID -> CONFIRMED
             });
         }
     });

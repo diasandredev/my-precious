@@ -193,7 +193,7 @@ export function useCalendarData() {
                                 ...commonData,
                                 date: formData.date,
                                 recurringTransactionId: editingItem.recurringTransactionId,
-                                status: 'PAID'
+                                status: 'CONFIRMED'
                             });
 
                             // Important: Skip the original projection date to prevent duplication
@@ -235,7 +235,7 @@ export function useCalendarData() {
                     await addTransaction({
                         ...commonData,
                         date: formData.date,
-                        status: 'PAID' // Default to PAID as per user request
+                        status: 'CONFIRMED' // Default to CONFIRMED as per user request
                     });
                 }
             }
@@ -297,7 +297,7 @@ export function useCalendarData() {
                     type: t.type || 'EXPENSE', // Support dynamic type
                     date: t.date,
                     categoryId: categoryId || 'cat_other',
-                    status: 'PAID',
+                    status: 'CONFIRMED',
                     // Persist extra metadata for future reference/debugging
                     cardName: t.cardName || null,
                     cardLastDigits: t.cardLastDigits || null,

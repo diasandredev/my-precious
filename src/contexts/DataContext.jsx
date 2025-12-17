@@ -344,6 +344,19 @@ export function DataProvider({ children }) {
         syncAction({ type: 'delete', collection: 'categories', id });
     };
 
+    // Migration: PAID -> CONFIRMED
+    useEffect(() => {
+        if (!loading && data.transactions && data.transactions.length > 0) {
+            const legacyTransactions = data.transactions.filter(t => t.status === 'PAID');
+            if (legacyTransactions.length > 0) {
+                console.log(`[Migration] Found ${legacyTransactions.length} 'PAID' transactions. Migrating to 'CONFIRMED'...`);
+                legacyTransactions.forEach(t => {
+                    updateTransaction(t.id, { status: 'CONFIRMED' });
+                });
+            }
+        }
+    }, [data.transactions, loading]);
+
     return (
         <DataContext.Provider value={{
             data,

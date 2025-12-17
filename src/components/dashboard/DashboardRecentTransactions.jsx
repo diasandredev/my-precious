@@ -60,6 +60,7 @@ function TransactionList({ transactions, formatCurrency }) {
                         amountDisplay={formatCurrency ? (t.type === 'EXPENSE' ? '-' : '+') + formatCurrency(t.amount) : (t.type === 'EXPENSE' ? '-' : '+') + `$${t.amount}`}
                         amountColor={t.type === 'INCOME' ? "text-emerald-500" : "text-gray-900"}
                         type={t.type}
+                        status={t.status}
                     />
                 ))}
             </div>
@@ -67,7 +68,7 @@ function TransactionList({ transactions, formatCurrency }) {
     ));
 }
 
-function TransactionItem({ icon, title, subtitle, amountDisplay, amountColor, type }) {
+function TransactionItem({ icon, title, subtitle, amountDisplay, amountColor, type, status }) {
     return (
         <div className="flex items-center justify-between group">
             <div className="flex items-center gap-4">
@@ -79,7 +80,16 @@ function TransactionItem({ icon, title, subtitle, amountDisplay, amountColor, ty
             </div>
             <div className="text-right">
                 <p className={cn("text-sm font-bold", amountColor)}>{amountDisplay}</p>
-                <p className="text-xs text-gray-400 capitalize">{type.toLowerCase()}</p>
+                <div className="flex items-center justify-end gap-1">
+                    <p className="text-xs text-gray-400 capitalize">{type.toLowerCase()}</p>
+                    <span className="text-xs text-gray-300">•</span>
+                    <p className={cn(
+                        "text-xs font-medium capitalize",
+                        status === 'PROJECTED' ? "text-amber-500" : "text-emerald-500"
+                    )}>
+                        {status === 'PROJECTED' ? 'Projected' : 'Confirmed'}
+                    </p>
+                </div>
             </div>
         </div>
     );

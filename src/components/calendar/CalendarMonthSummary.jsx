@@ -278,9 +278,9 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                                     <td className="py-3 text-center">
                                         <span className={cn(
                                             "text-[10px] font-bold uppercase",
-                                            item.status === 'PAID' ? "text-emerald-500" : "text-amber-500"
+                                            (item.status === 'CONFIRMED' || item.status === 'PAID') ? "text-emerald-500" : "text-amber-500"
                                         )}>
-                                            {item.status || 'PAID'}
+                                            {item.status === 'PAID' ? 'CONFIRMED' : (item.status || 'CONFIRMED')}
                                         </span>
                                     </td>
                                     <td className="py-3 text-center">
