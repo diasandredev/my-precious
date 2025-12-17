@@ -148,7 +148,9 @@ export function ProjectionsTab() {
                 total: runningBalance,
                 avgVariableExpenses: avgVariableExpenses,
                 monthlyIncome: income,
-                monthlyRecurringExpenses: recurringExpense
+                monthlyRecurringExpenses: recurringExpense,
+                monthlyYield: yieldAmount,         // Added for Breakdown Chart
+                monthlyNetSavings: netChange       // Added for Breakdown Chart
             });
         }
 

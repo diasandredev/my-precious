@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, TrendingUp, Calendar as CalendarIcon, Bell, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Wallet, TrendingUp, Calendar as CalendarIcon, Bell, Settings, LogOut, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import logo from '../../assets/logo.png';
 import { logout } from '../../services/auth';
@@ -18,7 +18,7 @@ export function Sidebar({ activeTab, onTabChange }) {
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'accounts', label: 'Accounts', icon: Wallet },
             { id: 'projections', label: 'Projections', icon: TrendingUp },
-
+            { id: 'insights', label: 'Insights', icon: Lightbulb },
             { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
         ],
         personal: [

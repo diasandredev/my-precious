@@ -6,6 +6,7 @@ import { CalendarTab } from './components/features/CalendarTab';
 import { DashboardTab } from './components/features/DashboardTab';
 import { SettingsTab } from './components/features/SettingsTab';
 import { ProjectionsTab } from './components/features/ProjectionsTab';
+import { InsightsTab } from './components/features/InsightsTab';
 import { Sidebar } from './components/layout/Sidebar';
 import { Login } from './pages/Login';
 import { onAuthChange } from './services/auth';
@@ -41,6 +42,8 @@ function App() {
         return <AccountsTab />;
       case 'projections':
         return <ProjectionsTab />;
+      case 'insights':
+        return <InsightsTab />;
       case 'calendar':
         return <CalendarTab />;
       case 'settings':
