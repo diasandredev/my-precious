@@ -31,7 +31,9 @@ export function InsightsTab() {
                 month: currentMonthKey,
                 date: startOfMonth(now),
                 total: 0,
-                categories: {}
+                incomeTotal: 0,
+                categories: {},
+                incomeCategories: {}
             });
             stats.sort((a, b) => b.date - a.date);
         }
@@ -186,7 +188,36 @@ export function InsightsTab() {
             </div>
 
             {/* 1. Overview Cards for Selected Month */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="flex flex-col h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+                        <CardTitle className="text-sm font-medium text-gray-500">Total Income</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.incomeTotal)}</div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {currentMonthData.hasProjections ? (
+                                    <span className="text-amber-600 font-medium">Includes Projected</span>
+                                ) : (
+                                    <span>Realized Amount</span>
+                                )}
+                            </p>
+                        </div>
+                        {monthlyStats[selectedMonthIndex + 1] && (
+                            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <span className="text-xs text-gray-400">vs last month</span>
+                                <div className={`flex items-center gap-1 text-xs font-medium ${currentMonthData.incomeTotal > monthlyStats[selectedMonthIndex + 1].incomeTotal ? 'text-emerald-500' : 'text-red-500'
+                                    }`}>
+                                    {currentMonthData.incomeTotal > monthlyStats[selectedMonthIndex + 1].incomeTotal ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                    {Math.abs((currentMonthData.incomeTotal - monthlyStats[selectedMonthIndex + 1].incomeTotal) / (monthlyStats[selectedMonthIndex + 1].incomeTotal || 1) * 100).toFixed(0)}%
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 <Card className="flex flex-col h-full">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
                         <CardTitle className="text-sm font-medium text-gray-500">Total Expenses</CardTitle>
@@ -202,6 +233,15 @@ export function InsightsTab() {
                                     <span>Realized Amount</span>
                                 )}
                             </p>
+                            {/* Expense Ratio */}
+                            {currentMonthData.incomeTotal > 0 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                    <span className="font-medium text-gray-700">
+                                        {((currentMonthData.total / currentMonthData.incomeTotal) * 100).toFixed(1)}%
+                                    </span>
+                                    <span className="ml-1">of Income</span>
+                                </p>
+                            )}
                         </div>
                         {monthlyStats[selectedMonthIndex + 1] && (
                             <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
@@ -218,7 +258,7 @@ export function InsightsTab() {
 
                 <Card className="flex flex-col h-full">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
-                        <CardTitle className="text-sm font-medium text-gray-500">Top Category</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-500">Top Expense</CardTitle>
                         <PieChart className="h-4 w-4 text-gray-400" />
                     </CardHeader>
                     <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-between">

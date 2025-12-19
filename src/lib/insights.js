@@ -4,31 +4,40 @@ import { startOfMonth, format, parseISO } from 'date-fns';
  * Groups a list of transactions (realized or projected) by category and calculates total.
  * @param {Array} transactions List of transaction objects
  * @param {Date} date Month date
- * @returns {Object} { month: 'YYYY-MM', total: number, categories: {}, date: Date }
+ * @returns {Object} { month: 'YYYY-MM', total: number, categories: {}, date: Date, incomeTotal: number, incomeCategories: {} }
  */
 export function aggregateMonthlyData(transactions, date) {
     const stats = {
         month: format(date, 'yyyy-MM'),
         date: startOfMonth(date),
         total: 0,
-        categories: {}
+        incomeTotal: 0,
+        categories: {},
+        incomeCategories: {}
     };
 
     transactions.forEach(t => {
-        if (t.type !== 'EXPENSE') return;
         const amount = Number(t.amount);
-        stats.total += amount;
-        if (!stats.categories[t.categoryId]) {
-            stats.categories[t.categoryId] = 0;
+        if (t.type === 'EXPENSE') {
+            stats.total += amount;
+            if (!stats.categories[t.categoryId]) {
+                stats.categories[t.categoryId] = 0;
+            }
+            stats.categories[t.categoryId] += amount;
+        } else if (t.type === 'INCOME') {
+            stats.incomeTotal += amount;
+            if (!stats.incomeCategories[t.categoryId]) {
+                stats.incomeCategories[t.categoryId] = 0;
+            }
+            stats.incomeCategories[t.categoryId] += amount;
         }
-        stats.categories[t.categoryId] += amount;
     });
 
     return stats;
 }
 
 /**
- * Groups all transactions by month and calculates total expenses.
+ * Groups all transactions by month and calculates total expenses and income.
  * @param {Array} transactions
  * @returns {Array} Array of aggregated month objects, sorted descending
  */
@@ -36,8 +45,6 @@ export function calculateMonthlyExpenses(transactions) {
     const months = {};
 
     transactions.forEach(t => {
-        if (t.type !== 'EXPENSE') return;
-
         const date = parseISO(t.date);
         const monthKey = format(date, 'yyyy-MM');
 
@@ -46,16 +53,26 @@ export function calculateMonthlyExpenses(transactions) {
                 month: monthKey,
                 date: startOfMonth(date),
                 total: 0,
-                categories: {}
+                incomeTotal: 0,
+                categories: {},
+                incomeCategories: {}
             };
         }
 
-        months[monthKey].total += Number(t.amount);
-
-        if (!months[monthKey].categories[t.categoryId]) {
-            months[monthKey].categories[t.categoryId] = 0;
+        const amount = Number(t.amount);
+        if (t.type === 'EXPENSE') {
+            months[monthKey].total += amount;
+            if (!months[monthKey].categories[t.categoryId]) {
+                months[monthKey].categories[t.categoryId] = 0;
+            }
+            months[monthKey].categories[t.categoryId] += amount;
+        } else if (t.type === 'INCOME') {
+            months[monthKey].incomeTotal += amount;
+            if (!months[monthKey].incomeCategories[t.categoryId]) {
+                months[monthKey].incomeCategories[t.categoryId] = 0;
+            }
+            months[monthKey].incomeCategories[t.categoryId] += amount;
         }
-        months[monthKey].categories[t.categoryId] += Number(t.amount);
     });
 
     return Object.values(months).sort((a, b) => b.date - a.date); // Descending order
@@ -75,17 +92,10 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
     const insights = [];
     if (!currentMonth) return insights;
 
-    // Use historyStats to find previous months relative to the *selected* month (currentIndex)
-    // Note: currentMonth might be a "Virtual" object (Projected), but historyStats is the source of truth for past.
-    // If currentMonth is derived from historyStats[currentIndex], then prev is currentIndex + 1.
-    // If currentMonth is a totally new object passed in, we assume it corresponds to proper time flow relative to historyStats[currentIndex + 1]?
-    // Let's assume historyStats is the full list. prevMonth is historyStats[currentIndex + 1].
-
     const prevMonth = historyStats[currentIndex + 1];
 
     if (!prevMonth) return insights;
 
-    // Helper: Determine Insight Type & Severity
     // Helper: Determine Insight Type & Severity
     const determineSeverity = (pctChange, diffAmount) => {
         // 1. FILTERS (Ignore noise)
@@ -106,10 +116,6 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
         if (pctChange >= 50 && !isSmallAmount) return { type: 'alert', severity: 'high' };
 
         // Default to Warning for anything else that passed the filters
-        // This includes:
-        // - pct >= 20%
-        // - pct 5-19% (if passed the >100 filter)
-        // - Any > 50% that was "small amount"
         return { type: 'warning', severity: 'medium' };
     };
 
@@ -138,6 +144,57 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             severity: 'low'
         });
     }
+
+    // --- NEW: Income Analysis ---
+    const incomeDiff = currentMonth.incomeTotal - prevMonth.incomeTotal;
+    const incomePercentChange = prevMonth.incomeTotal > 0 ? (incomeDiff / prevMonth.incomeTotal) * 100 : 100;
+
+    // A. Income Drop Alert
+    if (incomeDiff < 0) {
+        const dropPct = Math.abs(incomePercentChange);
+        if (dropPct > 10 && Math.abs(incomeDiff) > 500) {
+            insights.push({
+                type: 'warning',
+                title: 'Income Drop',
+                message: `Income is ${dropPct.toFixed(0)}% lower than last month.`,
+                amount: Math.abs(incomeDiff),
+                severity: 'medium',
+                comparisonType: 'month_over_month'
+            });
+        }
+    }
+    // B. Income Increase (Good)
+    else if (incomeDiff > 0) {
+        if (incomePercentChange > 10 && incomeDiff > 500) {
+            insights.push({
+                type: 'good',
+                title: 'Income Growth',
+                message: `Income is ${incomePercentChange.toFixed(0)}% higher than last month!`,
+                amount: incomeDiff,
+                severity: 'low',
+                comparisonType: 'month_over_month'
+            });
+        }
+    }
+
+    // C. Detected Project Income / Bonus
+    // If calculateMonthlyExpenses or aggregateMonthlyData was called on "Projected" data, currentMonth.incomeTotal reflects that.
+    // We can assume user wants to know if they WILL earn more.
+    if (currentMonth.isProjected && currentMonth.incomeTotal > prevMonth.incomeTotal * 1.05) {
+        // Re-verify if this is just standard salary or something else?
+        // For now, if "Projected" and higher, it's a good sign.
+        // We might already have covered it in "Income Growth", but let's be specific about Projection.
+        // Avoid duplicate if "Income Growth" already pushed.
+        // Actually, "Income Growth" above compares totals. If current is Projected, it's the same math.
+        // The label might need to be clearer.
+    }
+
+    // D. "Bonus" detection (One-off large income)
+    // Basic logic: If a single income transaction is > 30% of total income and > 2x average income transaction (complex to calc here without full list).
+    // Let's just use Category based or Description based?
+    // User specifically asked: "considerar tambem incomes (projetados e nao projetados)"
+    // We are using `currentMonth` which SHOULD include projected if the caller (InsightsTab) passed it correctly.
+
 
     // 2. Category Analysis (Spikes & 3-Month Average)
     if (currentMonth.categories) {
@@ -249,32 +306,20 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
 
             // MERGE LOGIC
             if (momInsight && avgInsight) {
-                // Determine dominant type (Alert > Warning > Good)
                 const severityScore = { 'alert': 3, 'warning': 2, 'good': 1 };
                 const momScore = severityScore[momInsight.type] || 0;
                 const avgScore = severityScore[avgInsight.type] || 0;
 
-                // Use the higher severity base
                 const base = momScore >= avgScore ? momInsight : avgInsight;
-                const secondary = momScore >= avgScore ? avgInsight : momInsight;
+                // const secondary = momScore >= avgScore ? avgInsight : momInsight;
 
-                // Combined Message
-                // "Spending ... increased by X% vs last month. It is also Y% higher than average."
                 const combinedMessage = `${momInsight.message} It is also ${avgInsight.message.replace('Spending is ', '').replace('Your ' + catName + ' spending is ', '')}`;
 
                 insights.push({
                     ...base,
                     message: combinedMessage,
-                    comparisonType: 'average', // Always use average to show full history context
-                    title: `${catName} Trends` // Generic title? Or keep specific? User asked to unify.
-                    // Maybe `${catName}: ${momInsight.type === avgInsight.type ? (momInsight.type === 'good' ? 'Savings' : 'High Spending') : 'Analysis'}`
-                    // Let's rely on the base title but maybe simplify?
-                    // "Compras Decrease" + "Compras Below Average" -> "Compras Savings"?
-                    // Let's use "Trends" or "Analysis" to be safe, or just the Category Name.
-                    // Actually "Title" is prominent.
-                    // If both are Good -> "Savings on CatName"
-                    // If both are Bad -> "High Spending on CatName"
-                    // If mixed -> "CatName Analysis"
+                    comparisonType: 'average',
+                    title: `${catName} Trends`
                 });
             } else if (momInsight) {
                 insights.push(momInsight);
@@ -284,13 +329,35 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
         });
     }
 
-
-
     // 3. New Insights Implementation
+
+    // NEW: Expense vs Income Ratio
+    if (currentMonth.total > 0 && currentMonth.incomeTotal > 0) {
+        const ratio = (currentMonth.total / currentMonth.incomeTotal) * 100;
+
+        if (ratio > 50) {
+            insights.push({
+                type: 'alert',
+                title: 'High Spending Ratio',
+                message: `Expenses are ${ratio.toFixed(0)}% of your income.`,
+                amount: currentMonth.total,
+                severity: 'high',
+                comparisonType: 'ratio'
+            });
+        } else if (ratio >= 40) {
+            insights.push({
+                type: 'warning',
+                title: 'Spending Ratio Warning',
+                message: `Expenses are ${ratio.toFixed(0)}% of your income.`,
+                amount: currentMonth.total,
+                severity: 'medium',
+                comparisonType: 'ratio'
+            });
+        }
+    }
 
     if (currentMonth.total > 0) {
         // A. DOMINANT CATEGORY (> 50% of spend)
-        // Check if any category exceeds 50% of total
         Object.entries(currentMonth.categories).forEach(([catId, amount]) => {
             if (amount > currentMonth.total * 0.5) {
                 const catName = categories.find(c => c.id === catId)?.name || 'Unknown Category';
@@ -306,35 +373,38 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             }
         });
 
-        // B. WEEKEND SPENDING SPIKE (> 35% on weekends)
+        // B. WEEKEND SPENDING SPIKE (> 35% on weekends) - EXPENSEONLY
         if (transactions.length > 0) {
-            const weekendSpend = transactions.reduce((sum, t) => {
+            const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
+            const weekendSpend = expenseTransactions.reduce((sum, t) => {
                 const dateObj = typeof t.date === 'string' ? parseISO(t.date) : t.date;
                 const day = dateObj.getDay();
-                // 0 = Sunday, 6 = Saturday
                 if (day === 0 || day === 6) {
                     return sum + Number(t.amount);
                 }
                 return sum;
             }, 0);
 
-            const weekendPct = (weekendSpend / currentMonth.total) * 100;
-            if (weekendPct > 35 && weekendSpend > 200) { // Min threshold to avoid noise
-                insights.push({
-                    type: 'info',
-                    title: 'Weekend Spending Spike',
-                    message: `High weekend activity: ${weekendPct.toFixed(0)}% of expenses occurred on Sat/Sun.`,
-                    amount: weekendSpend,
-                    severity: 'low'
-                });
+            if (currentMonth.total > 0) {
+                const weekendPct = (weekendSpend / currentMonth.total) * 100;
+                if (weekendPct > 35 && weekendSpend > 200) {
+                    insights.push({
+                        type: 'info',
+                        title: 'Weekend Spending Spike',
+                        message: `High weekend activity: ${weekendPct.toFixed(0)}% of expenses occurred on Sat/Sun.`,
+                        amount: weekendSpend,
+                        severity: 'low'
+                    });
+                }
             }
         }
 
-        // C. BIG TICKET ALERT (> 25% single transaction)
+        // C. BIG TICKET ALERT (> 25% single transaction) - EXPENSE ONLY
         if (transactions.length > 0) {
-            const bigTicket = transactions.find(t => Number(t.amount) > currentMonth.total * 0.25 && Number(t.amount) > 100);
+            // Filter for expenses first!
+            const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
+            const bigTicket = expenseTransactions.find(t => Number(t.amount) > currentMonth.total * 0.25 && Number(t.amount) > 100);
             if (bigTicket) {
-                // Find category name for context
                 const catName = categories.find(c => c.id === bigTicket.categoryId)?.name || 'Unknown';
                 const pct = (Number(bigTicket.amount) / currentMonth.total) * 100;
                 insights.push({
@@ -348,15 +418,13 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             }
         }
 
-        // D. NEW CATEGORY DETECTED
-        // Spending in a category that had 0 spend in previous 3 months
+        // D. NEW CATEGORY DETECTED (Expense only)
         if (Object.keys(currentMonth.categories).length > 0) {
             Object.keys(currentMonth.categories).forEach(catId => {
                 const amount = currentMonth.categories[catId];
-                if (amount < 50) return; // Ignore small noise
+                if (amount < 50) return;
 
                 let hasHistory = false;
-                // Check last 3 months
                 for (let i = 1; i <= 3; i++) {
                     const histMonth = historyStats[currentIndex + i];
                     if (histMonth && histMonth.categories[catId] > 0) {
@@ -365,7 +433,6 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                     }
                 }
 
-                // If no usage in last 3 months AND current amount > 0
                 if (!hasHistory) {
                     const catName = categories.find(c => c.id === catId)?.name || 'Unknown Category';
                     insights.push({
@@ -380,18 +447,15 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             });
         }
 
-        // E. FIXED COST BURDEN (> 70% is recurring laws/rules)
-        // We use transactions (Realized + Projected) that are linked to recurring rules.
+        // E. FIXED COST BURDEN (> 70% is recurring laws/rules) - Expense Only
         if (transactions.length > 0) {
             const fixedCostTotal = transactions.reduce((sum, t) => {
-                // Check if transaction is linked to a recurring rule or fixed item
                 if ((t.recurringTransactionId || t.fixedItemId) && t.type === 'EXPENSE') {
                     return sum + Number(t.amount);
                 }
                 return sum;
             }, 0);
 
-            // Compare fixedCostTotal to currentMonth.total
             if (currentMonth.total > 500) {
                 const fixedRatio = (fixedCostTotal / currentMonth.total) * 100;
                 if (fixedRatio > 70) {
