@@ -129,7 +129,7 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
             insights.push({
                 type: severityInfo.type,
                 title: 'Spending Spike',
-                message: `Spending is ${totalPercentChange.toFixed(0)}% higher than last month (was ${formatCurrency(prevMonth.total)}).`,
+                message: `Spending is ${totalPercentChange.toFixed(0)}% higher than last month (${formatCurrency(currentMonth.total)} vs ${formatCurrency(prevMonth.total)}).`,
                 amount: totalDiff,
                 severity: severityInfo.severity,
                 comparisonType: 'month_over_month'
@@ -217,7 +217,7 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                     momInsight = {
                         type: severityInfo.type,
                         title: `${catName} Increase`,
-                        message: `Spending on ${catName} increased by ${pctChange.toFixed(0)}% vs last month (was ${formatCurrency(prevAmount)}).`,
+                        message: `Spending on ${catName} increased by ${pctChange.toFixed(0)}% vs last month (${formatCurrency(currentAmount)} vs ${formatCurrency(prevAmount)}).`,
                         amount: diff,
                         severity: severityInfo.severity,
                         categoryId: catId,
