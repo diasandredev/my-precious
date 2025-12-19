@@ -115,14 +115,22 @@ export function useAccountsData() {
 
             // Check if we already have rates for this date
             const existingSnapshot = data.snapshots.find(s => s.date === selectedDate);
-            const hasAllRates = activeCurrencies.every(c => existingSnapshot?.rates?.[c]);
 
-            let rates;
-            if (hasAllRates) {
-                console.log("Using existing rates from snapshot");
-                rates = existingSnapshot.rates;
+            let rates = {};
+
+            if (activeCurrencies.length === 0) {
+                // If only BRL, we don't need new rates. Use existing if available (re-saving).
+                rates = existingSnapshot?.rates || {};
             } else {
-                rates = await fetchExchangeRates(selectedDate, activeCurrencies);
+                // Use optional chaining for safety, but typically we want to know if existingSnapshot is defined first
+                const hasAllRates = existingSnapshot && activeCurrencies.every(c => existingSnapshot.rates?.[c]);
+
+                if (hasAllRates) {
+                    console.log("Using existing rates from snapshot");
+                    rates = existingSnapshot.rates;
+                } else {
+                    rates = await fetchExchangeRates(selectedDate, activeCurrencies);
+                }
             }
 
             addSnapshot({

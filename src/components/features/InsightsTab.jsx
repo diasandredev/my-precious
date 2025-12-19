@@ -7,7 +7,7 @@ import { CategoryTrendChart } from '../insights/CategoryTrendChart';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, ArrowRight, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, TrendingDown, AlertTriangle, Wallet, PieChart, LineChart } from 'lucide-react';
 
 export function InsightsTab() {
     const { data, formatCurrency } = useData();
@@ -75,31 +75,42 @@ export function InsightsTab() {
 
 
     // Enhanced Current Month Data (Realized + Projected)
-    const currentMonthData = useMemo(() => {
+    const currentMonthTransactions = useMemo(() => {
         const stats = monthlyStats[selectedMonthIndex];
-        if (!stats) return null;
+        if (!stats) return [];
 
-        // Use getFinancialsForMonth for the SELECTED month to construct the view.
-        // This automatically handles "Projected" items for current/future.
-        const financials = getFinancialsForMonth(
+        return getFinancialsForMonth(
             stats.date,
             data.recurringTransactions,
             data.transactions,
             data.fixedExpenses
         );
+    }, [selectedMonthIndex, monthlyStats, data.recurringTransactions, data.transactions, data.fixedExpenses]);
+
+    const currentMonthData = useMemo(() => {
+        const stats = monthlyStats[selectedMonthIndex];
+        if (!stats) return null;
 
         // Aggregate these financials into the Statistics format
-        const enhancedStats = aggregateMonthlyData(financials, stats.date);
+        const enhancedStats = aggregateMonthlyData(currentMonthTransactions, stats.date);
 
         // Mark if it contains projections
-        enhancedStats.hasProjections = financials.some(f => f.status === 'PROJECTED');
+        enhancedStats.hasProjections = currentMonthTransactions.some(f => f.status === 'PROJECTED');
         enhancedStats.isProjected = enhancedStats.hasProjections;
 
         return enhancedStats;
-    }, [selectedMonthIndex, monthlyStats, data.recurringTransactions, data.transactions, data.fixedExpenses]);
+    }, [selectedMonthIndex, monthlyStats, currentMonthTransactions]);
 
     const insights = useMemo(() => {
-        const result = analyzeTrends(currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency);
+        const result = analyzeTrends(
+            currentMonthData,
+            monthlyStats,
+            selectedMonthIndex,
+            data.categories,
+            formatCurrency,
+            currentMonthTransactions,
+            data.recurringTransactions
+        );
 
         const getScore = (insight) => {
             const t = insight?.type?.toLowerCase();
@@ -110,7 +121,7 @@ export function InsightsTab() {
         };
 
         return result.sort((a, b) => getScore(a) - getScore(b));
-    }, [currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency]);
+    }, [currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency, currentMonthTransactions, data.recurringTransactions]);
 
 
 
@@ -175,81 +186,131 @@ export function InsightsTab() {
             </div>
 
             {/* 1. Overview Cards for Selected Month */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <CardHeader className="pb-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="flex flex-col h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
                         <CardTitle className="text-sm font-medium text-gray-500">Total Expenses</CardTitle>
+                        <Wallet className="h-4 w-4 text-gray-400" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(currentMonthData.total)}</div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            {currentMonthData.hasProjections ? (
-                                <span className="text-amber-600 font-medium">Includes Projected</span>
-                            ) : (
-                                <span>Realized Amount</span>
-                            )}
-                        </p>
+                    <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.total)}</div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {currentMonthData.hasProjections ? (
+                                    <span className="text-amber-600 font-medium">Includes Projected</span>
+                                ) : (
+                                    <span>Realized Amount</span>
+                                )}
+                            </p>
+                        </div>
+                        {monthlyStats[selectedMonthIndex + 1] && (
+                            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <span className="text-xs text-gray-400">vs last month</span>
+                                <div className={`flex items-center gap-1 text-xs font-medium ${currentMonthData.total > monthlyStats[selectedMonthIndex + 1].total ? 'text-red-500' : 'text-emerald-500'
+                                    }`}>
+                                    {currentMonthData.total > monthlyStats[selectedMonthIndex + 1].total ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                    {Math.abs((currentMonthData.total - monthlyStats[selectedMonthIndex + 1].total) / monthlyStats[selectedMonthIndex + 1].total * 100).toFixed(0)}%
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader className="pb-2">
+                <Card className="flex flex-col h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
                         <CardTitle className="text-sm font-medium text-gray-500">Top Category</CardTitle>
+                        <PieChart className="h-4 w-4 text-gray-400" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold truncate">
-                            {topCategories[0]?.name || 'N/A'}
+                    <CardContent className="p-4 pt-2 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                {topCategories[0]?.color && (
+                                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: topCategories[0].color }} />
+                                )}
+                                <div className="text-xl font-bold truncate">
+                                    {topCategories[0]?.name || 'N/A'}
+                                </div>
+                            </div>
+                            <div className="text-sm font-medium text-gray-700">
+                                {topCategories[0] ? `${formatCurrency(topCategories[0].amount)}` : '-'}
+                                <span className="text-gray-400 ml-1 font-normal">
+                                    {topCategories[0] ? `(${topCategories[0].percentage.toFixed(0)}%)` : ''}
+                                </span>
+                            </div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            {topCategories[0] ? `${formatCurrency(topCategories[0].amount)} (${topCategories[0].percentage.toFixed(0)}%)` : '-'}
-                        </p>
+                        {topCategories[0] && monthlyStats[selectedMonthIndex + 1] && (
+                            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <span className="text-xs text-gray-400">Previous</span>
+                                <span className="text-xs font-medium text-gray-600">
+                                    {formatCurrency(monthlyStats[selectedMonthIndex + 1].categories[topCategories[0].id] || 0)}
+                                </span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
                 {/* Trend Analysis Card */}
-                <Card>
-                    <CardHeader className="pb-2">
+                <Card className="flex flex-col h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
                         <CardTitle className="text-sm font-medium text-gray-500">Trend Analysis</CardTitle>
+                        <LineChart className="h-4 w-4 text-gray-400" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
+                    <CardContent className="p-4 pt-2 flex-1">
+                        <div className="space-y-3">
                             {insights.length > 0 ? (
                                 <>
                                     {insights.filter(i => i.type === 'alert').length > 0 && (
-                                        <div className="flex items-center gap-2 text-red-600">
-                                            <TrendingUp className="h-5 w-5" />
-                                            <span className="font-semibold">
-                                                {insights.filter(i => i.type === 'alert').length} Critical Alerts
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-red-600">
+                                                <TrendingUp className="h-4 w-4" />
+                                                <span className="font-semibold text-sm">Critical Alerts</span>
+                                            </div>
+                                            <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {insights.filter(i => i.type === 'alert').length}
                                             </span>
                                         </div>
                                     )}
                                     {insights.filter(i => i.type === 'warning').length > 0 && (
-                                        <div className="flex items-center gap-2 text-amber-600">
-                                            <AlertTriangle className="h-5 w-5" />
-                                            <span className="font-semibold">
-                                                {insights.filter(i => i.type === 'warning').length} Warnings
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-amber-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                <span className="font-semibold text-sm">Warnings</span>
+                                            </div>
+                                            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {insights.filter(i => i.type === 'warning').length}
                                             </span>
                                         </div>
                                     )}
                                     {insights.filter(i => i.type === 'good').length > 0 && (
-                                        <div className="flex items-center gap-2 text-emerald-600">
-                                            <TrendingDown className="h-5 w-5" />
-                                            <span className="font-medium">
-                                                {insights.filter(i => i.type === 'good').length} Positive highlights
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-emerald-600">
+                                                <TrendingDown className="h-4 w-4" />
+                                                <span className="font-medium text-sm">Positive highlights</span>
+                                            </div>
+                                            <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {insights.filter(i => i.type === 'good').length}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {insights.filter(i => i.type === 'info').length > 0 && (
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-blue-500">
+                                                <div className="h-4 w-4 flex items-center justify-center font-bold text-[10px] ring-1 ring-blue-200 rounded-full">i</div>
+                                                <span className="font-medium text-sm">Observations</span>
+                                            </div>
+                                            <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {insights.filter(i => i.type === 'info').length}
                                             </span>
                                         </div>
                                     )}
                                 </>
                             ) : (
                                 <div className="flex items-center gap-2 text-emerald-600">
-                                    <TrendingDown className="h-5 w-5" />
-                                    <span className="font-medium">Spending looks normal</span>
+                                    <TrendingDown className="h-4 w-4" />
+                                    <span className="font-medium text-sm">Spending appears normal</span>
                                 </div>
                             )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-4 pt-4 border-t border-gray-100">
-                            based on historical patterns
-                        </p>
                     </CardContent>
                 </Card>
             </div>

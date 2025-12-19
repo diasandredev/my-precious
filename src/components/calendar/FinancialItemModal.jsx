@@ -109,6 +109,39 @@ export function FinancialItemModal({ isOpen, onClose, itemType, setItemType, for
                                 </div>
                             </div>
                         </div>
+
+                    )}
+
+                    {!isConfirming && itemType !== 'recurring' && (
+                        <div>
+                            <Label>Status</Label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, status: 'CONFIRMED' })}
+                                    className={cn(
+                                        "flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all",
+                                        formData.status === 'CONFIRMED'
+                                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                                    )}
+                                >
+                                    Confirmed
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, status: 'PROJECTED' })}
+                                    className={cn(
+                                        "flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all",
+                                        formData.status === 'PROJECTED'
+                                            ? "bg-amber-50 border-amber-200 text-amber-700"
+                                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                                    )}
+                                >
+                                    Projected
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                     {isConfirming && (
@@ -232,6 +265,6 @@ export function FinancialItemModal({ isOpen, onClose, itemType, setItemType, for
                     </div>
                 </div>
             </form>
-        </Modal>
+        </Modal >
     );
 }

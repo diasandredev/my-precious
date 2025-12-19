@@ -67,9 +67,11 @@ export function calculateMonthlyExpenses(transactions) {
  * @param {Array} historyStats Array of ALL monthly stats (sorted descending)
  * @param {number} currentIndex Index of currentMonth in the history array (usually 0 if latest)
  * @param {Array} categories List of categories
+ * @param {Array} transactions List of transactions for the current month
+ * @param {Array} recurringTransactions List of recurring transaction rules
  * @returns {Array} List of insights
  */
-export function analyzeTrends(currentMonth, historyStats, currentIndex, categories, formatCurrency = (val) => val) {
+export function analyzeTrends(currentMonth, historyStats, currentIndex, categories, formatCurrency = (val) => val, transactions = [], recurringTransactions = []) {
     const insights = [];
     if (!currentMonth) return insights;
 
@@ -280,7 +282,129 @@ export function analyzeTrends(currentMonth, historyStats, currentIndex, categori
                 insights.push(avgInsight);
             }
         });
+    }
 
+
+
+    // 3. New Insights Implementation
+
+    if (currentMonth.total > 0) {
+        // A. DOMINANT CATEGORY (> 50% of spend)
+        // Check if any category exceeds 50% of total
+        Object.entries(currentMonth.categories).forEach(([catId, amount]) => {
+            if (amount > currentMonth.total * 0.5) {
+                const catName = categories.find(c => c.id === catId)?.name || 'Unknown Category';
+                const pct = (amount / currentMonth.total) * 100;
+                insights.push({
+                    type: 'warning',
+                    title: 'Dominant Category',
+                    message: `${catName} makes up ${pct.toFixed(0)}% of your total spending this month.`,
+                    amount: amount,
+                    severity: 'medium',
+                    categoryId: catId
+                });
+            }
+        });
+
+        // B. WEEKEND SPENDING SPIKE (> 35% on weekends)
+        if (transactions.length > 0) {
+            const weekendSpend = transactions.reduce((sum, t) => {
+                const dateObj = typeof t.date === 'string' ? parseISO(t.date) : t.date;
+                const day = dateObj.getDay();
+                // 0 = Sunday, 6 = Saturday
+                if (day === 0 || day === 6) {
+                    return sum + Number(t.amount);
+                }
+                return sum;
+            }, 0);
+
+            const weekendPct = (weekendSpend / currentMonth.total) * 100;
+            if (weekendPct > 35 && weekendSpend > 200) { // Min threshold to avoid noise
+                insights.push({
+                    type: 'info',
+                    title: 'Weekend Spending Spike',
+                    message: `High weekend activity: ${weekendPct.toFixed(0)}% of expenses occurred on Sat/Sun.`,
+                    amount: weekendSpend,
+                    severity: 'low'
+                });
+            }
+        }
+
+        // C. BIG TICKET ALERT (> 25% single transaction)
+        if (transactions.length > 0) {
+            const bigTicket = transactions.find(t => Number(t.amount) > currentMonth.total * 0.25 && Number(t.amount) > 100);
+            if (bigTicket) {
+                // Find category name for context
+                const catName = categories.find(c => c.id === bigTicket.categoryId)?.name || 'Unknown';
+                const pct = (Number(bigTicket.amount) / currentMonth.total) * 100;
+                insights.push({
+                    type: 'info',
+                    title: 'Big Ticket Item',
+                    message: `A single ${catName} transaction of ${formatCurrency(bigTicket.amount)} represents ${pct.toFixed(0)}% of monthly spend.`,
+                    amount: Number(bigTicket.amount),
+                    severity: 'low',
+                    categoryId: bigTicket.categoryId
+                });
+            }
+        }
+
+        // D. NEW CATEGORY DETECTED
+        // Spending in a category that had 0 spend in previous 3 months
+        if (Object.keys(currentMonth.categories).length > 0) {
+            Object.keys(currentMonth.categories).forEach(catId => {
+                const amount = currentMonth.categories[catId];
+                if (amount < 50) return; // Ignore small noise
+
+                let hasHistory = false;
+                // Check last 3 months
+                for (let i = 1; i <= 3; i++) {
+                    const histMonth = historyStats[currentIndex + i];
+                    if (histMonth && histMonth.categories[catId] > 0) {
+                        hasHistory = true;
+                        break;
+                    }
+                }
+
+                // If no usage in last 3 months AND current amount > 0
+                if (!hasHistory) {
+                    const catName = categories.find(c => c.id === catId)?.name || 'Unknown Category';
+                    insights.push({
+                        type: 'info',
+                        title: 'New Category',
+                        message: `You haven't spent on ${catName} in the last 3 months.`,
+                        amount: amount,
+                        severity: 'low',
+                        categoryId: catId
+                    });
+                }
+            });
+        }
+
+        // E. FIXED COST BURDEN (> 70% is recurring laws/rules)
+        // We use transactions (Realized + Projected) that are linked to recurring rules.
+        if (transactions.length > 0) {
+            const fixedCostTotal = transactions.reduce((sum, t) => {
+                // Check if transaction is linked to a recurring rule or fixed item
+                if ((t.recurringTransactionId || t.fixedItemId) && t.type === 'EXPENSE') {
+                    return sum + Number(t.amount);
+                }
+                return sum;
+            }, 0);
+
+            // Compare fixedCostTotal to currentMonth.total
+            if (currentMonth.total > 500) {
+                const fixedRatio = (fixedCostTotal / currentMonth.total) * 100;
+                if (fixedRatio > 70) {
+                    insights.push({
+                        type: 'warning',
+                        title: 'High Fixed Costs',
+                        message: `Fixed costs (${formatCurrency(fixedCostTotal)}) make up ${fixedRatio.toFixed(0)}% of your budget this month.`,
+                        amount: fixedCostTotal,
+                        severity: 'medium'
+                    });
+                }
+            }
+        }
     }
 
     return insights;

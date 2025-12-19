@@ -26,7 +26,8 @@ export function useCalendarData() {
         frequency: 'MONTHLY',
         startDate: format(new Date(), 'yyyy-MM-dd'),
         endDate: '',
-        isVariable: false
+        isVariable: false,
+        status: 'CONFIRMED'
     });
 
     // ... (Memo hooks same as before)
@@ -73,7 +74,8 @@ export function useCalendarData() {
             frequency: 'MONTHLY',
             startDate: format(day, 'yyyy-MM-dd'),
             endDate: '',
-            isVariable: false
+            isVariable: false,
+            status: 'CONFIRMED'
         });
         setEditingItem(null);
         setItemType('one-time');
@@ -118,7 +120,8 @@ export function useCalendarData() {
             frequency: item.frequency || 'MONTHLY',
             startDate: startDateStr,
             endDate: item.endDate || '',
-            isVariable: item.isVariable || false
+            isVariable: item.isVariable || false,
+            status: item.status || 'CONFIRMED'
         });
         setIsModalOpen(true);
     };
@@ -162,7 +165,8 @@ export function useCalendarData() {
             title: formData.title,
             amount: amount,
             type: formData.type,
-            categoryId: formData.categoryId
+            categoryId: formData.categoryId,
+            status: formData.status
         };
 
         try {
@@ -193,7 +197,7 @@ export function useCalendarData() {
                                 ...commonData,
                                 date: formData.date,
                                 recurringTransactionId: editingItem.recurringTransactionId,
-                                status: 'CONFIRMED'
+                                status: formData.status // Use user selection (was hardcoded 'PAID'/'CONFIRMED' before)
                             });
 
                             // Important: Skip the original projection date to prevent duplication
@@ -235,7 +239,7 @@ export function useCalendarData() {
                     await addTransaction({
                         ...commonData,
                         date: formData.date,
-                        status: 'CONFIRMED' // Default to CONFIRMED as per user request
+                        status: formData.status // Use user selection
                     });
                 }
             }
