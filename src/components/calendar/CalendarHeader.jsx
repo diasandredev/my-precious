@@ -7,7 +7,7 @@ export function CalendarHeader({ currentMonth, setCurrentMonth, handleFileUpload
     return (
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900 min-w-[200px]">
                     {format(currentMonth, 'MMMM yyyy')}
                 </h2>
                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">

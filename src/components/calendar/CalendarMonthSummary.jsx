@@ -10,6 +10,7 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
     const [filterName, setFilterName] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
 
     if (!monthlyFinancials) return null;
@@ -38,6 +39,14 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
         }
         if (filterCategory !== 'all') {
             result = result.filter(item => item.categoryId === filterCategory);
+        }
+        if (filterStatus !== 'all') {
+            result = result.filter(item => {
+                // Normalize status: If item has no status, assume 'CONFIRMED' for logic if needed, or just match exact?
+                // Most items have status.
+                const s = item.status || 'CONFIRMED';
+                return s === filterStatus;
+            });
         }
 
         // Sorting
@@ -77,7 +86,7 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
         });
 
         return result;
-    }, [monthlyFinancials.history, filterName, filterType, filterCategory, sortConfig, categories]);
+    }, [monthlyFinancials.history, filterName, filterType, filterCategory, filterStatus, sortConfig, categories]);
 
     const handleSort = (key) => {
         setSortConfig(current => ({
@@ -154,8 +163,21 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                         </div>
+                        <div className="relative min-w-[140px]">
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-full h-10 pl-3 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="CONFIRMED">Confirmed</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="PROJECTED">Projected</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                        </div>
 
-                        {(filterName || filterType !== 'all' || filterCategory !== 'all') && (
+                        {(filterName || filterType !== 'all' || filterCategory !== 'all' || filterStatus !== 'all') && (
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -163,6 +185,7 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                                     setFilterName('');
                                     setFilterType('all');
                                     setFilterCategory('all');
+                                    setFilterStatus('all');
                                 }}
                                 className="h-10 w-10 text-gray-400 hover:text-gray-900 hover:bg-gray-100"
                                 title="Clear all filters"
