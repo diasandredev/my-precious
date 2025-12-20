@@ -145,8 +145,8 @@ export const fetchUserData = async (uid: string) => {
             fixedItems,
             transactions,
             categories,
-            // Settings is likely a singleton, so take first item or default
-            settings: settingsDocs.length > 0 ? settingsDocs[0] : {}
+            // Settings is likely a singleton, so take 'general' doc if exists, else first item or default
+            settings: settingsDocs.find(d => d.id === 'general') || settingsDocs[0] || {}
         };
 
         // Replay Pending Actions (Optimistic Consistency on Reload)

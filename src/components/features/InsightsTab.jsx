@@ -5,14 +5,18 @@ import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 import { InsightCard } from '../insights/InsightCard';
 import { CategoryTrendChart } from '../insights/CategoryTrendChart';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { InsightsSettingsDialog } from '../insights/InsightsSettingsDialog';
+import { InsightsSettingsProvider, useInsightsSettings } from '../../contexts/InsightsSettingsContext';
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowLeft, ArrowRight, TrendingUp, TrendingDown, AlertTriangle, Wallet, PieChart, LineChart } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, TrendingDown, AlertTriangle, Wallet, PieChart, LineChart, Settings } from 'lucide-react';
 
-export function InsightsTab() {
+function InsightsTabContent() {
     const { data, formatCurrency } = useData();
-    // derived state will be below daily stats
+    const { insightsConfig, isLoaded } = useInsightsSettings();
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+    // Derived state will be below daily stats
 
     // Memoize heavy calculations
     const monthlyStats = useMemo(() => {
@@ -104,6 +108,10 @@ export function InsightsTab() {
     }, [selectedMonthIndex, monthlyStats, currentMonthTransactions]);
 
     const insights = useMemo(() => {
+        // Wait for config to load before analyzing? Or just use default (which context should provide initially anyway)
+        // But to avoid flicker if saved config is different, we might want to check isLoaded
+        if (!isLoaded) return [];
+
         const result = analyzeTrends(
             currentMonthData,
             monthlyStats,
@@ -111,7 +119,8 @@ export function InsightsTab() {
             data.categories,
             formatCurrency,
             currentMonthTransactions,
-            data.recurringTransactions
+            data.recurringTransactions,
+            insightsConfig // Pass the config!
         );
 
         const getScore = (insight) => {
@@ -123,7 +132,7 @@ export function InsightsTab() {
         };
 
         return result.sort((a, b) => getScore(a) - getScore(b));
-    }, [currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency, currentMonthTransactions, data.recurringTransactions]);
+    }, [currentMonthData, monthlyStats, selectedMonthIndex, data.categories, formatCurrency, currentMonthTransactions, data.recurringTransactions, insightsConfig, isLoaded]);
 
 
 
@@ -151,6 +160,11 @@ export function InsightsTab() {
     return (
         <div className="space-y-6 max-w-full mx-auto pb-12">
 
+            <InsightsSettingsDialog
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+            />
+
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
@@ -162,28 +176,39 @@ export function InsightsTab() {
                 </div>
 
                 {/* Right Side: Month Navigation (Styled like Projections controls) */}
-                <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
+                <div className="flex items-center gap-2">
+                    {/* Settings Button */}
                     <button
-                        onClick={() => navigateMonth(1)}
-                        disabled={selectedMonthIndex >= monthlyStats.length - 1}
-                        className="p-1.5 hover:bg-gray-100 rounded-md disabled:opacity-30 text-gray-500 transition-colors"
-                        aria-label="Previous Month"
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="p-2 bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg border shadow-sm transition-colors"
+                        title="Configure Insights"
                     >
-                        <ArrowLeft className="h-4 w-4" />
+                        <Settings className="h-5 w-5" />
                     </button>
 
-                    <span className="font-semibold text-sm text-gray-700 min-w-[140px] text-center capitalize select-none">
-                        {format(currentMonthData.date, 'MMMM yyyy', { locale: ptBR })}
-                    </span>
+                    <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
+                        <button
+                            onClick={() => navigateMonth(1)}
+                            disabled={selectedMonthIndex >= monthlyStats.length - 1}
+                            className="p-1.5 hover:bg-gray-100 rounded-md disabled:opacity-30 text-gray-500 transition-colors"
+                            aria-label="Previous Month"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                        </button>
 
-                    <button
-                        onClick={() => navigateMonth(-1)}
-                        disabled={selectedMonthIndex <= 0}
-                        className="p-1.5 hover:bg-gray-100 rounded-md disabled:opacity-30 text-gray-500 transition-colors"
-                        aria-label="Next Month"
-                    >
-                        <ArrowRight className="h-4 w-4" />
-                    </button>
+                        <span className="font-semibold text-sm text-gray-700 min-w-[140px] text-center capitalize select-none">
+                            {format(currentMonthData.date, 'MMMM yyyy', { locale: ptBR })}
+                        </span>
+
+                        <button
+                            onClick={() => navigateMonth(-1)}
+                            disabled={selectedMonthIndex <= 0}
+                            className="p-1.5 hover:bg-gray-100 rounded-md disabled:opacity-30 text-gray-500 transition-colors"
+                            aria-label="Next Month"
+                        >
+                            <ArrowRight className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -491,3 +516,14 @@ export function InsightsTab() {
         </div >
     );
 }
+
+export function InsightsTab() {
+    return (
+        <InsightsSettingsProvider>
+            <InsightsTabContent />
+        </InsightsSettingsProvider>
+    );
+}
+
+// Preserve default export if necessary, though named export is used mostly
+export default InsightsTab;

@@ -43,7 +43,7 @@ const initialData = {
         // Other
         { id: 'cat_other', name: 'Outros', color: '#6b7280', type: 'EXPENSE' }
     ],
-    settings: { mainCurrency: 'BRL' }
+    settings: { id: 'general', mainCurrency: 'BRL' }
 };
 
 export function DataProvider({ children }) {
