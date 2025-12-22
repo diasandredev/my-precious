@@ -1,19 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip, Rectangle, Layer } from 'recharts';
 import { Card } from '../ui/Card';
-import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function CashFlowSankey({ transactions, categories, formatCurrency }) {
     // Default to current month
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
-
-    // Auto-select latest valid month if current selection becomes invalid
-    // (e.g. initially current month, but maybe no data for it yet)
-    // Actually, user might want to see "Empty" current month. 
-    // But request was "Only show months with data". 
-    // So if current month has NO data, it won't be in options, so we must switch.
-
 
     // Generate month options based on transactions
     const monthOptions = useMemo(() => {
@@ -62,8 +55,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
 
         // 1. Filter Transactions
         const filtered = transactions.filter(t => {
-            if (!t.date || t.status !== 'CONFIRMED') return false; // Only confirmed? Or pending too? User usually wants cashflow of actual money or projected? Image implies analyzing past/current. Let's strictly use CONFIRMED for actual cashflow, or maybe all active if looking at current month. Let's match other charts: ALL for now, or check status. 
-            // In DashboardFinancialOverview, we use all. Let's use all valid transactions.
+            if (!t.date || t.status !== 'CONFIRMED') return false;
             const d = parseISO(t.date);
             return isWithinInterval(d, { start: startDate, end: endDate });
         });
@@ -75,17 +67,14 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         let totalExpense = 0;
 
         filtered.forEach(t => {
-            // Find category
             const cat = categories.find(c => c.id === t.categoryId);
             const catName = cat ? cat.name : 'Outros';
             const catColor = cat ? cat.color : '#9ca3af';
-
-            // Check type (explicit or by category)
-            // Some transactions might not have type if they are legacy, rely on category type
             const type = t.type || (cat ? cat.type : 'EXPENSE');
 
             if (type === 'INCOME') {
-                if (!incomeMap[catName]) incomeMap[catName] = { val: 0, color: catColor };
+                // Use explicit Green for Income nodes to match reference
+                if (!incomeMap[catName]) incomeMap[catName] = { val: 0, color: '#10b981' };
                 incomeMap[catName].val += Number(t.amount);
                 totalIncome += Number(t.amount);
             } else if (type === 'EXPENSE') {
@@ -99,90 +88,74 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         const nodes = [];
         const links = [];
 
-        // --- Nodes ---
-        // Helper to get index
-        const getNodeIndex = (name) => {
-            let idx = nodes.findIndex(n => n.name === name);
-            if (idx === -1) {
-                idx = nodes.length;
-                nodes.push({ name }); // Color?
-            }
-            return idx;
-        };
-
-        // Center Node
-        const centerName = 'Caixa';
-        // const centerIdx = getNodeIndex(centerName); // We'll add it, but index depends on order.
-        // Recharts Sankey is sensitive to order. Usually: Sources -> Center -> Targets.
-
         // Income Nodes (Sources)
         Object.entries(incomeMap).forEach(([name, { val, color }]) => {
             nodes.push({ name, color });
         });
 
-        // Center Node (Middle)
+        // Center Node
+        const centerName = 'Fluxo de Caixa';
         const centerIndex = nodes.length;
-        // Color depends on Surplus/Deficit? Or neutral.
+        // Center color always Green to match "Money Stream" idea, or Red if absolute deficit?
         const balance = totalIncome - totalExpense;
-        const centerColor = balance >= 0 ? '#10b981' : '#ef4444'; // Green or Red
+        const centerColor = '#10b981'; // Fixed Green for central flow
         nodes.push({ name: centerName, color: centerColor });
 
         // Expense Nodes (Targets)
         const firstExpenseIndex = nodes.length;
-        Object.entries(expenseMap).forEach(([name, { val, color }]) => {
+        // Sort expenses by value for nicer look
+        const sortedExpenses = Object.entries(expenseMap).sort((a, b) => b[1].val - a[1].val);
+
+        sortedExpenses.forEach(([name, { val, color }]) => {
             nodes.push({ name, color });
         });
 
-        // Special Nodes for Surplus/Deficit
-        // If Income > Expenses: Surplus node (Target)
-        // If Expenses > Income: Deficit/Savings node (Source) - Wait, Sankey needs flow conservation.
-        //   If In < Out, we need an extra Source "Poupança/Reserva" flowing into Center.
-
+        // Surplus/Deficit
         let surplusIndex = -1;
         let deficitIndex = -1;
 
         if (totalIncome > totalExpense) {
             surplusIndex = nodes.length;
-            nodes.push({ name: 'Sobrou', color: '#10b981' });
+            nodes.push({ name: 'Sobrou', color: '#10b981' }); // Green
         } else if (totalExpense > totalIncome) {
-            // Need a source node for deficit to balance the center
-            // "Retirado da Poupança" or "Deficit"
-            // Ensure this is treated as a SOURCE in the list order? 
-            // Recharts Sankey uses the link logic to determine flow direction, but usually nicer to handle index order.
-            // Let's add it at start or handle logic.
-            // Actually, simply adding it to nodes is enough, links define structure.
+            // Deficit as Source
             deficitIndex = nodes.length;
-            nodes.push({ name: 'Retirado da Poupança', color: '#f59e0b' });
+            nodes.push({ name: 'Retirado', color: '#f59e0b' }); // Orange/Red
         }
 
+        // --- Links ---
 
         // --- Links ---
 
         // 1. Income -> Center
+        // Use darker colors for better visibility
         Object.entries(incomeMap).forEach(([name, { val }], index) => {
             links.push({
-                source: index, // Income nodes are 0 to (centerIndex-1)
+                source: index,
                 target: centerIndex,
-                value: val
+                value: val,
+                color: '#34d399' // Emerald 400
             });
         });
 
-        // 1b. Deficit used (Source) -> Center
+        // 1b. Deficit -> Center
         if (deficitIndex !== -1) {
             const deficitAmount = totalExpense - totalIncome;
             links.push({
                 source: deficitIndex,
                 target: centerIndex,
-                value: deficitAmount
+                value: deficitAmount,
+                color: '#fbbf24' // Amber 400
             });
         }
 
         // 2. Center -> Expenses
-        Object.keys(expenseMap).forEach((name, i) => {
+        sortedExpenses.forEach(([name, info], i) => {
             links.push({
                 source: centerIndex,
                 target: firstExpenseIndex + i,
-                value: expenseMap[name].val
+                value: info.val,
+                color: '#f87171' // Red 400
             });
         });
 
@@ -192,84 +165,30 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
             links.push({
                 source: centerIndex,
                 target: surplusIndex,
-                value: surplusAmount
+                value: surplusAmount,
+                color: '#34d399' // Emerald 400
             });
         }
 
         return { nodes, links };
     }, [transactions, categories, selectedMonth]);
 
-
-    // Custom Tooltip
-    const CustomTooltip = ({ active, payload }) => {
-        if (!active || !payload || !payload.length) return null;
-        const data = payload[0];
-        const isLink = data.payload.source !== undefined;
-
-        if (isLink) {
-            const sourceName = data.payload.source.name;
-            const targetName = data.payload.target.name;
-            return (
-                <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100 z-50">
-                    <p className="text-sm font-medium text-gray-900">
-                        {sourceName} → {targetName}
-                    </p>
-                    <p className="text-sm font-bold text-indigo-600">
-                        {formatCurrency(data.value)}
-                    </p>
-                </div>
-            );
-        }
-
-        // Node Tooltip
-        return (
-            <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100 z-50">
-                <p className="text-sm font-bold text-gray-900">{data.payload.name}</p>
-                <p className="text-sm font-medium text-gray-500">
-                    {formatCurrency(data.value)}
-                </p>
-            </div>
-        );
-    };
-
-    // Custom Node Rendering to add Text labels properly? 
-    // Recharts Sankey default labels are okay, but maybe we want custom colors.
-    // The "node" prop can be a custom component.
+    // Custom Node
     const MyCustomNode = ({ x, y, width, height, index, payload, containerWidth }) => {
-        // Heuristic: If x is small (left side), text on right.
-        // If x is in middle (center), text centered above? Or right.
-        // If x is large (right side), text on left.
-
-        // Simple check: Is it in the first 20% of the canvas?
-        const isLeft = x < 100; // Assuming canvas > 200
-        // Is it in the last 20%? or just Not Left. 
-        // Middle node (Caixa) is around x = width/2.
-        // Let's treat Middle and Right as "Text Left" or "Text Above"?
-        // Usually Center: Text Above. Right: Text Left.
-
-        // Let's refine based on "Layer". We know Source=0, Center=1, Target=2 usually.
-        // But we don't have layer easily.
-
-        // Let's stick to: Left -> Start, Right -> End. 
-        // For Center (around mid), if we use "End", it puts text on Left (inside incoming links area). 
-        // If we use "Start", it puts text on Right (inside outgoing link area).
-        // Text ABOVE is safest for Center.
-
-        const isCenter = !isLeft && (containerWidth ? x < containerWidth - 100 : x < 500); // Rough check
-        // Actually, easiest: name === 'Caixa'
-        const isCaixa = payload.name === 'Caixa';
+        const isLeft = x < 100;
+        const isCaixa = payload.name === 'Fluxo de Caixa';
 
         let textAnchor = 'start';
-        let tx = x + width + 6;
+        let tx = x + width + 8;
         let ty = y + height / 2;
 
         if (isCaixa) {
             textAnchor = 'middle';
             tx = x + width / 2;
-            ty = y - 10; // Above
+            ty = y - 25; // Keep high position
         } else if (!isLeft) {
             textAnchor = 'end';
-            tx = x - 6;
+            tx = x - 8;
         }
 
         return (
@@ -280,21 +199,54 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
                     fillOpacity="1"
                     radius={4}
                 />
-                <text
-                    x={tx}
-                    y={ty}
-                    textAnchor={textAnchor}
-                    alignmentBaseline="middle"
-                    fill="#374151"
-                    fontSize={12}
-                    fontWeight="500"
-                >
-                    {payload.name} ({formatCurrency(payload.value)})
-                </text>
+
+                {/* Labels */}
+                {!isCaixa ? (
+                    <text x={tx} y={ty} textAnchor={textAnchor} alignmentBaseline="middle">
+                        <tspan x={tx} dy="-0.6em" fontSize={11} fontWeight="600" fill="#111827">{payload.name}</tspan>
+                        <tspan x={tx} dy="1.2em" fontSize={10} fill="#6b7280">{formatCurrency(payload.value)}</tspan>
+                    </text>
+                ) : (
+                    <text x={tx} y={ty} textAnchor="middle">
+                        <tspan x={tx} dy="0" fontSize={12} fontWeight="bold" fill="#111827">{payload.name}</tspan>
+                        <tspan x={tx} dy="1.2em" fontSize={11} fill="#6b7280">{formatCurrency(payload.value)}</tspan>
+                    </text>
+                )}
             </Layer>
         );
     };
 
+    // Custom Link to use specific colors
+    const DemoLink = (props) => {
+        const { sourceX, sourceY, targetX, targetY, linkWidth, payload } = props;
+        // Verify payload.color exists, else fallback
+        const color = payload.color || '#9ca3af';
+
+        // Calculate Bezier path for horizontal Sankey
+        // Standard Sankey curvature
+        const deltaX = targetX - sourceX;
+        const curvature = 0.5;
+        const x1 = sourceX + deltaX * curvature;
+        const x2 = targetX - deltaX * curvature;
+
+        const d = `
+            M ${sourceX},${sourceY}
+            C ${x1},${sourceY}
+              ${x2},${targetY}
+              ${targetX},${targetY}
+        `;
+
+        return (
+            <path
+                d={d}
+                stroke={color}
+                strokeWidth={Math.max(1, linkWidth)}
+                fill="none"
+                strokeOpacity={0.25} // More transparent
+                style={{ transition: 'stroke-opacity 0.3s' }}
+            />
+        );
+    };
 
     return (
         <Card className="col-span-1 lg:col-span-3 p-6 bg-white min-h-[500px]">
@@ -317,17 +269,32 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
                 </select>
             </div>
 
-            <div className="h-[400px] w-full">
+            <div className="h-[500px] w-full">
                 {data.nodes.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                         <Sankey
                             data={data}
                             node={<MyCustomNode />}
+                            link={<DemoLink />}
                             nodePadding={20}
-                            margin={{ left: 10, right: 10, top: 20, bottom: 20 }}
-                            link={{ stroke: '#94a3b8', strokeOpacity: 0.4, fill: 'none' }}
+                            nodeWidth={12}
+                            margin={{ left: 20, right: 20, top: 40, bottom: 40 }}
                         >
-                            <Tooltip content={<CustomTooltip />} />
+                            <Tooltip content={({ active, payload }) => {
+                                if (!active || !payload?.length) return null;
+                                const item = payload[0];
+                                const isLink = item.payload.source !== undefined;
+                                if (isLink) return (
+                                    <div className="bg-white p-2 border shadow-sm rounded text-xs">
+                                        {item.payload.source.name} → {item.payload.target.name}: <b>{formatCurrency(item.value)}</b>
+                                    </div>
+                                );
+                                return (
+                                    <div className="bg-white p-2 border shadow-sm rounded text-xs">
+                                        {item.payload.name}: <b>{formatCurrency(item.value)}</b>
+                                    </div>
+                                );
+                            }} />
                         </Sankey>
                     </ResponsiveContainer>
                 ) : (
