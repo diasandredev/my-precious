@@ -1,15 +1,19 @@
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, PieChart, Pie
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { Card } from '../ui/Card';
+import { DashboardAssetsCard } from './DashboardAssetsCard';
 
 export function DashboardAssetCharts({ evolutionData, allocationData, sortedAccounts, getAccountColor, formatCurrency }) {
+    // Calculate total value for allocation
+    const totalValue = allocationData.reduce((sum, item) => sum + item.value, 0);
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
             {/* Stacked Area/Bar Chart - Evolution */}
-            <Card className="lg:col-span-2 p-6 bg-white min-h-[400px]">
+            <Card className="p-6 bg-white min-h-[500px]">
                 <h3 className="text-lg font-bold text-gray-900 mb-6">Asset Evolution (BRL)</h3>
-                <div className="h-[320px]">
+                <div className="h-[420px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={evolutionData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -87,50 +91,16 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
                 </div>
             </Card>
 
-            {/* Donut Chart - Current Allocation */}
-            <Card className="lg:col-span-1 p-6 bg-white min-h-[400px] flex flex-col">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Asset Allocation</h3>
-                <p className="text-xs text-gray-400 mb-6">Current distribution (BRL Eq.)</p>
-                <div className="flex-1 min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={allocationData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={2}
-                                dataKey="value"
-                            >
-                                {allocationData.map((entry, index) => {
-                                    // Hack: We need 'acc' to get consistent color. Accessing through closure or props might be hard if 'acc' isn't in entry.
-                                    // Luckily 'allocationData' logic in hook put 'id' in entry.
-                                    // But we need the 'acc' object to pass to getAccountColor.
-                                    // Better to pass the whole account object in entry or modify getAccountColor to accept ID or simpler args.
-                                    // Actually, getAccountColor takes (account, index). We have account ID.
-                                    // Simplest fix: The hook attached 'id' and 'currency' and 'type' to allocation items.
-                                    // But getAccountColor checks name!
-                                    // I should update getAccountColor or pass the account map?
-                                    // The hook returns `allocationData` where items have `simpleName` (=acc.name).
-                                    // I can construct a dummy account object for `getAccountColor`.
-                                    const dummyAcc = {
-                                        id: entry.id,
-                                        currency: entry.currency,
-                                        name: entry.simpleName, // used for color
-                                        type: entry.type
-                                    };
-                                    return <Cell key={`cell-${index}`} fill={getAccountColor(dummyAcc, index)} />;
-                                })}
-                            </Pie>
-                            <Tooltip
-                                formatter={(value, name, props) => [formatCurrency(value), name]}
-                            />
-                            <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '11px', maxWidth: '120px' }} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-            </Card>
+            {/* Assets Allocation Card */}
+            <div className="min-h-[500px]">
+                <DashboardAssetsCard
+                    allocationData={allocationData}
+                    totalValue={totalValue}
+                    formatCurrency={formatCurrency}
+                    getAccountColor={getAccountColor}
+                />
+            </div>
         </div>
     );
 }
+

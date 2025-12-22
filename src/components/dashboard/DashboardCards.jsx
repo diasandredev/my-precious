@@ -5,11 +5,11 @@ import { cn } from '../../lib/utils';
 
 export function DashboardCards({ currentMonthMetrics, netWorthStats, formatCurrency }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Total Spendings (Current Month) */}
-            <Card className="p-6 relative overflow-hidden bg-white">
-                <div className="flex justify-between items-start mb-4">
+            <Card className="p-5 relative overflow-hidden bg-white">
+                <div className="flex justify-between items-start mb-2">
                     <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Spendings</p>
                         <div className="flex items-baseline gap-2 mt-1">
@@ -23,8 +23,8 @@ export function DashboardCards({ currentMonthMetrics, netWorthStats, formatCurre
             </Card>
 
             {/* Income / Savings */}
-            <Card className="p-6 bg-white">
-                <div className="flex justify-between items-start mb-4">
+            <Card className="p-5 bg-white">
+                <div className="flex justify-between items-start mb-2">
                     <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Income</p>
                         <div className="flex items-baseline gap-2 mt-1">
@@ -38,7 +38,7 @@ export function DashboardCards({ currentMonthMetrics, netWorthStats, formatCurre
             </Card>
 
             {/* Total Net Worth Trend */}
-            <Card className="p-6 bg-white">
+            <Card className="p-5 bg-white">
                 <div className="flex justify-between items-start mb-2">
                     <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Net Worth</p>

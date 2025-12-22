@@ -1,5 +1,5 @@
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { Card } from '../ui/Card';
 
@@ -15,156 +15,111 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
-                {/* Stacked Bar Chart */}
-                <div className="h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} barSize={20}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                dy={10}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                tickFormatter={(value) => formatCurrency ? formatCurrency(value).replace(/\D00(?=\D*$)/, '') : value}
-                            />
-                            <Tooltip
-                                cursor={{ fill: 'transparent' }}
-                                content={({ active, payload, label }) => {
-                                    if (active && payload && payload.length) {
-                                        return (
-                                            <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
-                                                <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{payload[0]?.payload?.fullName || label}</p>
-                                                {payload.map((p, i) => {
-                                                    const isIncome = p.dataKey && p.dataKey.toString().startsWith('inc_');
-                                                    const typeLabel = isIncome ? 'Income' : 'Expense';
-                                                    return (
-                                                        <p key={i} className="text-sm font-medium" style={{ color: p.color }}>
-                                                            {p.name} <span className="text-xs opacity-75">({typeLabel})</span>: {formatCurrency(p.value)}
-                                                        </p>
-                                                    );
-                                                })}
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <Legend
-                                content={({ payload }) => {
-                                    // Filter active keys
-                                    const activeKeys = new Set();
-                                    chartData.forEach(d => {
-                                        Object.keys(d).forEach(k => {
-                                            if (typeof d[k] === 'number' && d[k] > 0) {
-                                                activeKeys.add(k);
-                                            }
-                                        });
-                                    });
-
-                                    const filteredPayload = payload.filter(entry => activeKeys.has(entry.dataKey));
-
+            <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} barSize={20}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                        <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#9ca3af', fontSize: 12 }}
+                            dy={10}
+                        />
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#9ca3af', fontSize: 12 }}
+                            tickFormatter={(value) => formatCurrency ? formatCurrency(value).replace(/\D00(?=\D*$)/, '') : value}
+                        />
+                        <Tooltip
+                            cursor={{ fill: 'transparent' }}
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
                                     return (
-                                        <div className="flex flex-wrap gap-4 mt-4 justify-center">
-                                            {filteredPayload.map((entry, index) => (
-                                                <div key={`item-${index}`} className="flex items-center gap-1.5">
-                                                    <div
-                                                        className="w-2 h-2 rounded-full"
-                                                        style={{ backgroundColor: entry.color }}
-                                                    />
-                                                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                                                        {entry.value}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                        <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100">
+                                            <p className="text-xs text-gray-500 mb-1 font-bold uppercase">{payload[0]?.payload?.fullName || label}</p>
+                                            {payload.map((p, i) => {
+                                                const isIncome = p.dataKey && p.dataKey.toString().startsWith('inc_');
+                                                const typeLabel = isIncome ? 'Income' : 'Expense';
+                                                return (
+                                                    <p key={i} className="text-sm font-medium" style={{ color: p.color }}>
+                                                        {p.name} <span className="text-xs opacity-75">({typeLabel})</span>: {formatCurrency(p.value)}
+                                                    </p>
+                                                );
+                                            })}
                                         </div>
                                     );
-                                }}
-                            />
-                            {/* Generate Bars for Categories */}
-                            {(categories || [])
-                                .filter(c => c.type === 'EXPENSE' || c.type === 'BOTH')
-                                .map(cat => (
-                                    <Bar
-                                        key={`exp_${cat.id}`}
-                                        dataKey={`exp_${cat.id}`}
-                                        name={cat.name}
-                                        stackId="expenses"
-                                        fill={cat.color}
-                                    />
-                                ))
-                            }
-                            {/* Uncategorized expenses */}
-                            <Bar dataKey="exp_uncategorized_expense" name="Uncategorized Exp" stackId="expenses" fill="#9ca3af" />
+                                }
+                                return null;
+                            }}
+                        />
+                        <Legend
+                            content={({ payload }) => {
+                                // Filter active keys
+                                const activeKeys = new Set();
+                                chartData.forEach(d => {
+                                    Object.keys(d).forEach(k => {
+                                        if (typeof d[k] === 'number' && d[k] > 0) {
+                                            activeKeys.add(k);
+                                        }
+                                    });
+                                });
 
-                            {/* Income Bar (Single or Stacked? User said Income vs Expense stacked. Usually income is one block) */}
-                            {/* Let's keep Income as a separate bar stack for comparison */}
-                            {(categories || [])
-                                .filter(c => c.type === 'INCOME' || c.type === 'BOTH')
-                                .map(cat => (
-                                    <Bar
-                                        key={`inc_${cat.id}`}
-                                        dataKey={`inc_${cat.id}`}
-                                        name={cat.name}
-                                        stackId="income"
-                                        fill={cat.color}
-                                    />
-                                ))
-                            }
-                            {/* Uncategorized income */}
-                            <Bar dataKey="inc_uncategorized_income" name="Uncategorized Inc" stackId="income" fill="#d1d5db" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                                const filteredPayload = payload.filter(entry => activeKeys.has(entry.dataKey));
 
-                {/* Pie Chart */}
-                <div className="h-full relative flex flex-col">
-                    <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Expenses Breakdown</h4>
-                        <select
-                            className="text-xs border rounded px-2 py-1 text-gray-600 bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            value={breakdownFilter}
-                            onChange={(e) => setBreakdownFilter(e.target.value)}
-                        >
-                            <option value="ALL">All Months</option>
-                            {chartData.map(m => (
-                                <option key={m.fullDate} value={m.fullDate}>
-                                    {m.name} {m.isCurrent ? '(Current)' : ''}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={pieData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    formatter={(value) => formatCurrency(value)}
+                                return (
+                                    <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                                        {filteredPayload.map((entry, index) => (
+                                            <div key={`item-${index}`} className="flex items-center gap-1.5">
+                                                <div
+                                                    className="w-2 h-2 rounded-full"
+                                                    style={{ backgroundColor: entry.color }}
+                                                />
+                                                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                                    {entry.value}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            }}
+                        />
+                        {/* Generate Bars for Categories */}
+                        {(categories || [])
+                            .filter(c => c.type === 'EXPENSE' || c.type === 'BOTH')
+                            .map(cat => (
+                                <Bar
+                                    key={`exp_${cat.id}`}
+                                    dataKey={`exp_${cat.id}`}
+                                    name={cat.name}
+                                    stackId="expenses"
+                                    fill={cat.color}
                                 />
-                                <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: '12px' }} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                            ))
+                        }
+                        {/* Uncategorized expenses */}
+                        <Bar dataKey="exp_uncategorized_expense" name="Uncategorized Exp" stackId="expenses" fill="#9ca3af" />
+
+                        {/* Income Bar (Single or Stacked? User said Income vs Expense stacked. Usually income is one block) */}
+                        {/* Let's keep Income as a separate bar stack for comparison */}
+                        {(categories || [])
+                            .filter(c => c.type === 'INCOME' || c.type === 'BOTH')
+                            .map(cat => (
+                                <Bar
+                                    key={`inc_${cat.id}`}
+                                    dataKey={`inc_${cat.id}`}
+                                    name={cat.name}
+                                    stackId="income"
+                                    fill={cat.color}
+                                />
+                            ))
+                        }
+                        {/* Uncategorized income */}
+                        <Bar dataKey="inc_uncategorized_income" name="Uncategorized Inc" stackId="income" fill="#d1d5db" />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
-        </Card >
+        </Card>
     );
 }

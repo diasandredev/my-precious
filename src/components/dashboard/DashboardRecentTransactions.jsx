@@ -2,15 +2,15 @@ import { format } from 'date-fns';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 
-export function DashboardRecentTransactions({ transactions, formatCurrency }) {
+export function DashboardRecentTransactions({ transactions, formatCurrency, className }) {
     return (
-        <Card className="lg:col-span-1 p-6 bg-white space-y-6 max-h-[500px] overflow-y-auto">
-            <div className="flex items-center justify-between">
+        <Card className={cn("p-5 bg-white space-y-3 overflow-hidden flex flex-col", className)}>
+            <div className="flex items-center justify-between shrink-0">
                 <h3 className="text-lg font-bold text-gray-900">Transactions</h3>
                 <p className="text-xs text-gray-400">Recent</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
                 <TransactionList transactions={transactions} formatCurrency={formatCurrency} />
             </div>
         </Card>
