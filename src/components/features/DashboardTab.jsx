@@ -5,6 +5,7 @@ import { DashboardAssetCharts } from '../dashboard/DashboardAssetCharts';
 import { CryptoPortfolio } from '../dashboard/CryptoPortfolio';
 import { DashboardRecentTransactions } from '../dashboard/DashboardRecentTransactions';
 import { DashboardFinancialOverview } from '../dashboard/DashboardFinancialOverview';
+import { CashFlowSankey } from '../dashboard/CashFlowSankey';
 
 export function DashboardTab() {
     const {
@@ -75,6 +76,13 @@ export function DashboardTab() {
                     formatCurrency={formatCurrency}
                 />
             </div >
+
+            {/* Cash Flow Sankey (New) - Visualizes Income vs Expenses flow */}
+            <CashFlowSankey
+                transactions={data.transactions}
+                categories={data.categories}
+                formatCurrency={formatCurrency}
+            />
         </div >
     );
 }
