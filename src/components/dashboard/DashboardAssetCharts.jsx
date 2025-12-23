@@ -10,6 +10,16 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
 
     return (
         <div className="space-y-0">
+            {/* Assets Allocation Card */}
+            <div className="min-h-[500px]">
+                <DashboardAssetsCard
+                    allocationData={allocationData}
+                    totalValue={totalValue}
+                    formatCurrency={formatCurrency}
+                    getAccountColor={getAccountColor}
+                />
+            </div>
+
             {/* Stacked Area/Bar Chart - Evolution */}
             <Card className="p-6 bg-white min-h-[500px] rounded-none shadow-none">
                 <h3 className="text-lg font-bold text-gray-900 mb-6">Asset Evolution</h3>
@@ -90,16 +100,6 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
                     </ResponsiveContainer>
                 </div>
             </Card>
-
-            {/* Assets Allocation Card */}
-            <div className="min-h-[500px]">
-                <DashboardAssetsCard
-                    allocationData={allocationData}
-                    totalValue={totalValue}
-                    formatCurrency={formatCurrency}
-                    getAccountColor={getAccountColor}
-                />
-            </div>
         </div>
     );
 }

@@ -47,13 +47,6 @@ export function DashboardTab() {
                         assetsByCurrency={assetsByCurrency}
                     />
 
-                    {/* Main Chart (Income vs Expense) - Full Width */}
-                    <DashboardFinancialOverview
-                        chartData={chartData}
-                        categories={data.categories}
-                        formatCurrency={formatCurrency}
-                    />
-
                     {/* Asset Evolution & Assets (Inside component they are stacked) - Full Width */}
                     <DashboardAssetCharts
                         evolutionData={evolutionData}
@@ -69,6 +62,13 @@ export function DashboardTab() {
                         formatCurrency={formatCurrency}
                         getAccountColor={getAccountColor}
                         data={data}
+                    />
+
+                    {/* Main Chart (Income vs Expense) - Full Width */}
+                    <DashboardFinancialOverview
+                        chartData={chartData}
+                        categories={data.categories}
+                        formatCurrency={formatCurrency}
                     />
 
                     {/* Split Row: Expenses Breakdown & Crypto Allocation */}

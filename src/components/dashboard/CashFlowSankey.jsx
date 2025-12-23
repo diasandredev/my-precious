@@ -1,20 +1,39 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip, Rectangle, Layer } from 'recharts';
 import { Card } from '../ui/Card';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ChevronDown } from 'lucide-react';
 
 export function CashFlowSankey({ transactions, categories, formatCurrency }) {
     // Default to current month
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownRef]);
 
     // Generate month options based on transactions
     const monthOptions = useMemo(() => {
         if (!transactions || transactions.length === 0) {
             // Fallback to current month if no data
             return [{
-                value: format(new Date(), 'yyyy-MM'),
-                label: format(new Date(), 'MMMM yyyy', { locale: ptBR })
+                year: format(new Date(), 'yyyy'),
+                months: [{
+                    value: format(new Date(), 'yyyy-MM'),
+                    label: format(new Date(), 'MMMM', { locale: ptBR })
+                }]
             }];
         }
 
@@ -26,23 +45,40 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
             }
         });
 
-        // Convert to array and sort descending
-        return Array.from(uniqueMonths)
-            .sort((a, b) => b.localeCompare(a)) // Descending: 2025-12, 2025-11...
-            .map(m => {
+        // Group by Year
+        const grouped = {};
+
+        Array.from(uniqueMonths)
+            .sort((a, b) => b.localeCompare(a)) // Descending
+            .forEach(m => {
                 const [year, month] = m.split('-');
                 const d = new Date(parseInt(year), parseInt(month) - 1);
-                return {
+
+                if (!grouped[year]) grouped[year] = [];
+                grouped[year].push({
                     value: m,
-                    label: format(d, 'MMMM yyyy', { locale: ptBR }) // e.g. "Dezembro 2025"
-                };
+                    label: format(d, 'MMMM', { locale: ptBR }) // Just month name for label
+                });
             });
+
+        // Convert to array of { year, months }
+        return Object.entries(grouped)
+            .sort(([yearA], [yearB]) => yearB - yearA) // Descending years
+            .map(([year, months]) => ({
+                year,
+                months
+            }));
     }, [transactions]);
 
     // Sync selection with available options
+    // Sync selection with available options
     useEffect(() => {
-        if (monthOptions.length > 0 && !monthOptions.find(o => o.value === selectedMonth)) {
-            setSelectedMonth(monthOptions[0].value);
+        if (monthOptions.length > 0) {
+            // Flatten options to check existence
+            const allOptions = monthOptions.flatMap(g => g.months);
+            if (!allOptions.find(o => o.value === selectedMonth)) {
+                setSelectedMonth(allOptions[0].value);
+            }
         }
     }, [monthOptions, selectedMonth]);
 
@@ -94,7 +130,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         });
 
         // Center Node
-        const centerName = 'Fluxo de Caixa';
+        const centerName = 'Cash Flow';
         const centerIndex = nodes.length;
         // Center color always Green to match "Money Stream" idea, or Red if absolute deficit?
         const balance = totalIncome - totalExpense;
@@ -116,11 +152,11 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
 
         if (totalIncome > totalExpense) {
             surplusIndex = nodes.length;
-            nodes.push({ name: 'Sobrou', color: '#10b981' }); // Green
+            nodes.push({ name: 'Surplus', color: '#10b981' }); // Green
         } else if (totalExpense > totalIncome) {
             // Deficit as Source
             deficitIndex = nodes.length;
-            nodes.push({ name: 'Retirado', color: '#f59e0b' }); // Orange/Red
+            nodes.push({ name: 'Deficit', color: '#f59e0b' }); // Orange/Red
         }
 
         // --- Links ---
@@ -176,8 +212,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
     // Custom Node
     const MyCustomNode = ({ x, y, width, height, index, payload, containerWidth }) => {
         const isLeft = x < 100;
-        const isCaixa = payload.name === 'Fluxo de Caixa';
-
+        const isCaixa = payload.name === 'Cash Flow';
         let textAnchor = 'start';
         let tx = x + width + 8;
         let ty = y + height / 2;
@@ -192,7 +227,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         }
 
         return (
-            <Layer key={`node-${index}`}>
+            <Layer key={`node - ${index} `}>
                 <Rectangle
                     x={x} y={y} width={width} height={height}
                     fill={payload.color || "#8884d8"}
@@ -234,7 +269,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
             C ${x1},${sourceY}
               ${x2},${targetY}
               ${targetX},${targetY}
-        `;
+`;
 
         return (
             <path
@@ -248,25 +283,55 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         );
     };
 
+    // Get label for current selection
+    const selectedDate = parseISO(selectedMonth);
+    const selectedLabel = format(selectedDate, "MMMM ' - ' yyyy", { locale: ptBR });
+
     return (
         <Card className="col-span-1 lg:col-span-3 p-6 bg-white min-h-[500px] rounded-none shadow-none">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">Fluxo de Caixa</h3>
-                    <p className="text-sm text-gray-400">Entradas vs Saídas</p>
+                    <h3 className="text-lg font-bold text-gray-900">Cash Flow</h3>
+                    <p className="text-sm text-gray-400">Incomes vs Expenses</p>
                 </div>
 
-                <select
-                    className="border rounded-md px-3 py-1.5 text-sm bg-gray-50 text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                >
-                    {monthOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                {/* Custom Month Selector */}
+                <div className="relative" ref={dropdownRef}>
+                    <button
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="flex items-center gap-2 border rounded-md px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 capitalize min-w-[160px] justify-between"
+                    >
+                        <span>{selectedLabel}</span>
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                    </button>
+
+                    {isDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-1 w-[200px] max-h-[300px] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+                            {monthOptions.map((group) => (
+                                <div key={group.year}>
+                                    <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500 border-b border-gray-100">
+                                        {group.year}
+                                    </div>
+                                    <div>
+                                        {group.months.map((opt) => (
+                                            <div
+                                                key={opt.value}
+                                                onClick={() => {
+                                                    setSelectedMonth(opt.value);
+                                                    setIsDropdownOpen(false);
+                                                }}
+                                                className={`px-3 py-2 text-sm cursor-pointer capitalize hover:bg-gray-50 transition-colors ${selectedMonth === opt.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'
+                                                    }`}
+                                            >
+                                                {opt.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="h-[500px] w-full">

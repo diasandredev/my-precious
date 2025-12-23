@@ -6,7 +6,7 @@ import { getFinancialsForMonth } from '../lib/financialPeriodUtils';
 
 export function useDashboardData() {
     const { data, formatCurrency } = useData();
-    const [breakdownFilter, setBreakdownFilter] = useState('ALL');
+    const [breakdownFilter, setBreakdownFilter] = useState(format(new Date(), 'yyyy-MM'));
 
     // --- Derived Data Calculations ---
 
@@ -118,7 +118,7 @@ export function useDashboardData() {
         const evoData = sortedSnapshots.map(snap => {
             const point = {
                 date: snap.date,
-                name: format(parseISO(snap.date), 'MMM yy', { locale: ptBR }),
+                name: format(parseISO(snap.date), 'dd/MM/yy', { locale: ptBR }),
                 tooltipLabel: format(parseISO(snap.date), "d 'de' MMMM 'de' yyyy", { locale: ptBR }),
                 fullDate: snap.date
             };
@@ -208,8 +208,8 @@ export function useDashboardData() {
         const cats = data.categories || [];
         const getCat = (id) => cats.find(c => c.id === id) || { name: 'Uncategorized', color: '#9ca3af', type: 'EXPENSE' };
 
-        // Generate range: -2 to +6
-        for (let i = -2; i <= 6; i++) {
+        // Generate range: -11 to +6
+        for (let i = -11; i <= 6; i++) {
             const d = addMonths(currentDate, i);
             months.push({
                 date: d,
