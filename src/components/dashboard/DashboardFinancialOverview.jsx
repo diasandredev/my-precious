@@ -5,7 +5,7 @@ import {
 import { Card } from '../ui/Card';
 
 export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter, setBreakdownFilter, categories, formatCurrency }) {
-    const [viewMode, setViewMode] = useState('DEFAULT'); // DEFAULT (-3 to +5), 3M, 6M, 1Y (Past)
+    const [viewMode, setViewMode] = useState('6M'); // DEFAULT (-3 to +5), 3M, 6M, 1Y (Past)
 
     // Filter data based on view mode
     const filteredData = useMemo(() => {
@@ -68,7 +68,7 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                 </div>
                 <div className="flex gap-2">
                     {/* View Selectors */}
-                    {['DEFAULT', '3M', '6M', '1Y'].map(mode => (
+                    {['3M', '6M', '1Y', 'DEFAULT'].map(mode => (
                         <button
                             key={mode}
                             onClick={() => setViewMode(mode)}
@@ -77,7 +77,7 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
                                 : 'text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
                                 }`}
                         >
-                            {mode === 'DEFAULT' ? 'Default' : mode === '1Y' ? 'Year' : mode === '3M' ? '3 Months' : '6 Months'}
+                            {mode === 'DEFAULT' ? 'Past & Future' : mode === '1Y' ? 'Year' : mode === '3M' ? '3 Months' : '6 Months'}
                         </button>
                     ))}
                 </div>
