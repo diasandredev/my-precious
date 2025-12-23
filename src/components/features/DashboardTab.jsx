@@ -31,24 +31,17 @@ export function DashboardTab() {
     return (
         <div className="space-y-4">
             {/* Top Cards: Spending, Income, Net Worth */}
-            <DashboardCards
-                currentMonthMetrics={currentMonthMetrics}
-                netWorthStats={netWorthStats}
-                formatCurrency={formatCurrency}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                {/* Left Column: Transactions (Takes 1/3) */}
-                <div className="lg:col-span-4 space-y-4">
-                    <DashboardRecentTransactions
-                        transactions={data.transactions}
+            {/* Top Cards: Spending, Income, Net Worth */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-full">
+                {/* Left Column: Charts & Data (Takes 9/12) */}
+                <div className="lg:col-span-9 flex flex-col">
+                    {/* Top Cards: Spending, Income, Net Worth */}
+                    <DashboardCards
+                        currentMonthMetrics={currentMonthMetrics}
+                        netWorthStats={netWorthStats}
                         formatCurrency={formatCurrency}
-                        className="min-h-[500px] max-h-[calc(100vh-2rem)] sticky top-0"
                     />
-                </div>
 
-                {/* Right Column: Charts & Data (Takes 2/3) */}
-                <div className="lg:col-span-8 space-y-4">
                     {/* Assets by Currency */}
                     <DashboardCurrencyCards
                         assetsByCurrency={assetsByCurrency}
@@ -79,7 +72,7 @@ export function DashboardTab() {
                     />
 
                     {/* Split Row: Expenses Breakdown & Crypto Allocation */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                         <DashboardExpensesBreakdown
                             pieData={pieData}
                             breakdownFilter={breakdownFilter}
@@ -100,6 +93,17 @@ export function DashboardTab() {
                         categories={data.categories}
                         formatCurrency={formatCurrency}
                     />
+                </div>
+
+                {/* Right Column: Transactions (Takes 3/12) - Sticky Sidebar */}
+                <div className="lg:col-span-3 relative">
+                    <div className="sticky top-0 h-screen">
+                        <DashboardRecentTransactions
+                            transactions={data.transactions}
+                            formatCurrency={formatCurrency}
+                            className="h-full"
+                        />
+                    </div>
                 </div>
             </div>
         </div>

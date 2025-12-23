@@ -249,7 +249,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
     };
 
     return (
-        <Card className="col-span-1 lg:col-span-3 p-6 bg-white min-h-[500px]">
+        <Card className="col-span-1 lg:col-span-3 p-6 bg-white min-h-[500px] rounded-none shadow-none">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-gray-900">Fluxo de Caixa</h3>

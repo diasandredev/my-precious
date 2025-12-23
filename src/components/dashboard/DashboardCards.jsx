@@ -5,10 +5,10 @@ import { cn } from '../../lib/utils';
 
 export function DashboardCards({ currentMonthMetrics, netWorthStats, formatCurrency }) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
 
             {/* Total Spendings (Current Month) */}
-            <Card className="p-5 relative overflow-hidden bg-white">
+            <Card className="p-5 relative overflow-hidden bg-white rounded-none shadow-none">
                 <div className="flex justify-between items-start mb-2">
                     <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Spendings</p>
@@ -23,7 +23,7 @@ export function DashboardCards({ currentMonthMetrics, netWorthStats, formatCurre
             </Card>
 
             {/* Income / Savings */}
-            <Card className="p-5 bg-white">
+            <Card className="p-5 bg-white rounded-none shadow-none">
                 <div className="flex justify-between items-start mb-2">
                     <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Income</p>
@@ -38,7 +38,7 @@ export function DashboardCards({ currentMonthMetrics, netWorthStats, formatCurre
             </Card>
 
             {/* Total Net Worth Trend */}
-            <Card className="p-5 bg-white">
+            <Card className="p-5 bg-white rounded-none shadow-none">
                 <div className="flex justify-between items-start mb-2">
                     <div>
                         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Net Worth</p>

@@ -5,7 +5,7 @@ import { Card } from '../ui/Card';
 
 export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter, setBreakdownFilter, categories, formatCurrency }) {
     return (
-        <Card className="lg:col-span-2 p-6 bg-white min-h-[500px]">
+        <Card className="lg:col-span-2 p-6 bg-white min-h-[500px] rounded-none shadow-none">
             <div className="flex justify-between items-start mb-8">
                 <div>
                     <h3 className="text-lg font-bold text-gray-900">

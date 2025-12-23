@@ -46,7 +46,7 @@ export function DashboardAssetsCard({ allocationData, totalValue, formatCurrency
     };
 
     return (
-        <Card className="p-6 bg-white h-full max-h-[600px] flex flex-col">
+        <Card className="p-6 bg-white h-full max-h-[600px] flex flex-col rounded-none shadow-none">
             <div className="flex items-baseline gap-2 mb-4 shrink-0">
                 <h3 className="text-xl font-bold text-gray-900">Assets</h3>
                 <span className="text-lg text-gray-500 font-medium">
@@ -85,9 +85,9 @@ export function DashboardAssetsCard({ allocationData, totalValue, formatCurrency
 
             {/* List Header */}
             <div className="flex text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-2 shrink-0">
-                <div className="flex-1">Name</div>
+                <div className="flex-1">Account</div>
                 <div className="w-32 text-right hidden sm:block">Weight</div>
-                <div className="w-32 text-right">Value</div>
+                <div className="w-32 text-right">Amount</div>
             </div>
 
             {/* List Items - Scrollable Area */}

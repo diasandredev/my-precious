@@ -4,8 +4,8 @@ import { cn } from '../../lib/utils';
 
 export function DashboardRecentTransactions({ transactions, formatCurrency, className }) {
     return (
-        <Card className={cn("p-5 bg-white space-y-3 overflow-hidden flex flex-col", className)}>
-            <div className="flex items-center justify-between shrink-0">
+        <Card className={cn("pl-5 pb-0 pt-0 pr-0 bg-white space-y-3 overflow-hidden flex flex-col rounded-none shadow-none", className)}>
+            <div className="flex items-center justify-between shrink-0 mt-6 mb-4 pr-6">
                 <h3 className="text-lg font-bold text-gray-900">Transactions</h3>
                 <p className="text-xs text-gray-400">Recent</p>
             </div>

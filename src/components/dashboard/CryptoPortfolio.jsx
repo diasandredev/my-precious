@@ -7,7 +7,7 @@ export function CryptoPortfolio({ cryptoStats, formatCurrency, getAccountColor, 
     if (cryptoStats.allocationData.length === 0) return null;
 
     return (
-        <Card className="p-6 bg-white min-h-[350px]">
+        <Card className="p-6 bg-white min-h-[350px] rounded-none shadow-none">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-gray-900">Crypto Portfolio</h3>
                 <div className="text-right">
@@ -61,7 +61,7 @@ export function CryptoAllocation({ cryptoStats, formatCurrency, getAccountColor 
     if (cryptoStats.allocationData.length === 0) return null;
 
     return (
-        <Card className="p-5 bg-white h-[400px] flex flex-col">
+        <Card className="p-5 bg-white h-[400px] flex flex-col rounded-none shadow-none">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Crypto Allocation</h3>
             <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">

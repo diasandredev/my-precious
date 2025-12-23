@@ -9,10 +9,10 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
     const totalValue = allocationData.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-0">
             {/* Stacked Area/Bar Chart - Evolution */}
-            <Card className="p-6 bg-white min-h-[500px]">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Asset Evolution (BRL)</h3>
+            <Card className="p-6 bg-white min-h-[500px] rounded-none shadow-none">
+                <h3 className="text-lg font-bold text-gray-900 mb-6">Asset Evolution</h3>
                 <div className="h-[420px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={evolutionData}>

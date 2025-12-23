@@ -5,7 +5,7 @@ import { Card } from '../ui/Card';
 
 export function DashboardExpensesBreakdown({ pieData, breakdownFilter, setBreakdownFilter, chartData, formatCurrency }) {
     return (
-        <Card className="p-5 bg-white h-[400px] flex flex-col">
+        <Card className="p-5 bg-white h-[400px] flex flex-col rounded-none shadow-none">
             <div className="flex justify-between items-center mb-2 shrink-0">
                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Expenses Breakdown</h4>
                 <select

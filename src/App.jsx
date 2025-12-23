@@ -85,11 +85,11 @@ function App() {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50 font-sans text-gray-900">
+    <div className="flex min-h-screen bg-gray-50/50 font-mono text-gray-900">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="flex-1 overflow-hidden h-screen relative">
-        <div className="h-full w-full overflow-auto p-8">
+        <div className={`h-full w-full overflow-auto ${activeTab === 'dashboard' ? '' : 'p-8'}`}>
           {renderContent()}
         </div>
       </main>
