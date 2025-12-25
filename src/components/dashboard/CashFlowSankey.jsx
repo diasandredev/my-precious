@@ -39,7 +39,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
 
         const uniqueMonths = new Set();
         transactions.forEach(t => {
-            if (t.date && t.status === 'CONFIRMED') {
+            if (t.date && (t.status === 'CONFIRMED' || t.status === 'PROJECTED')) {
                 const d = parseISO(t.date);
                 uniqueMonths.add(format(d, 'yyyy-MM'));
             }
@@ -53,6 +53,11 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
             .forEach(m => {
                 const [year, month] = m.split('-');
                 const d = new Date(parseInt(year), parseInt(month) - 1);
+
+                // Filter out future months (keep current month and past)
+                const now = new Date();
+                const currentMonthStart = startOfMonth(now);
+                if (d > currentMonthStart) return;
 
                 if (!grouped[year]) grouped[year] = [];
                 grouped[year].push({
@@ -89,112 +94,206 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         const startDate = startOfMonth(new Date(parseInt(year), parseInt(month) - 1));
         const endDate = endOfMonth(startDate);
 
-        // 1. Filter Transactions
+        // 1. Filter Transactions (CONFIRMED + PROJECTED)
         const filtered = transactions.filter(t => {
-            if (!t.date || t.status !== 'CONFIRMED') return false;
+            if (!t.date) return false;
+            // Allow CONFIRMED and PROJECTED
+            if (t.status !== 'CONFIRMED' && t.status !== 'PROJECTED') return false;
             const d = parseISO(t.date);
             return isWithinInterval(d, { start: startDate, end: endDate });
         });
 
         // 2. Aggregate Data
+        // Structure: { [catName]: { confirmed: 0, projected: 0, color: ... } }
         const incomeMap = {};
         const expenseMap = {};
-        let totalIncome = 0;
-        let totalExpense = 0;
+
+        let totalIncomeConfirmed = 0;
+        let totalIncomeProjected = 0;
+        let totalExpenseConfirmed = 0;
+        let totalExpenseProjected = 0;
 
         filtered.forEach(t => {
             const cat = categories.find(c => c.id === t.categoryId);
             const catName = cat ? cat.name : 'Outros';
             const catColor = cat ? cat.color : '#9ca3af';
             const type = t.type || (cat ? cat.type : 'EXPENSE');
+            const isProjected = t.status === 'PROJECTED';
+            const amount = Number(t.amount);
 
             if (type === 'INCOME') {
-                // Use explicit Green for Income nodes to match reference
-                if (!incomeMap[catName]) incomeMap[catName] = { val: 0, color: '#10b981' };
-                incomeMap[catName].val += Number(t.amount);
-                totalIncome += Number(t.amount);
+                if (!incomeMap[catName]) incomeMap[catName] = { confirmed: 0, projected: 0, color: '#10b981' };
+                if (isProjected) {
+                    incomeMap[catName].projected += amount;
+                    totalIncomeProjected += amount;
+                } else {
+                    incomeMap[catName].confirmed += amount;
+                    totalIncomeConfirmed += amount;
+                }
             } else if (type === 'EXPENSE') {
-                if (!expenseMap[catName]) expenseMap[catName] = { val: 0, color: catColor };
-                expenseMap[catName].val += Number(t.amount);
-                totalExpense += Number(t.amount);
+                if (!expenseMap[catName]) expenseMap[catName] = { confirmed: 0, projected: 0, color: catColor };
+                if (isProjected) {
+                    expenseMap[catName].projected += amount;
+                    totalExpenseProjected += amount;
+                } else {
+                    expenseMap[catName].confirmed += amount;
+                    totalExpenseConfirmed += amount;
+                }
             }
         });
+
+        const totalIncome = totalIncomeConfirmed + totalIncomeProjected;
+        const totalExpense = totalExpenseConfirmed + totalExpenseProjected;
 
         // 3. Construct Nodes & Links
         const nodes = [];
         const links = [];
 
+        // --- NODES ---
+        // Nodes represent the TOTAL (Confirmed + Projected)
+
         // Income Nodes (Sources)
-        Object.entries(incomeMap).forEach(([name, { val, color }]) => {
-            nodes.push({ name, color });
+        // SPLIT INCOMES into Confirmed and Projected nodes
+        Object.entries(incomeMap).forEach(([name, { confirmed, projected }]) => {
+            // Confirmed Node
+            if (confirmed > 0) {
+                nodes.push({
+                    name: name,
+                    displayName: name,
+                    color: '#10b981',
+                    value: confirmed,
+                    confirmed: confirmed,
+                    projected: 0,
+                    isProjectedNode: false
+                });
+            }
+            // Projected Node
+            if (projected > 0) {
+                nodes.push({
+                    name: `${name} (Proj)`,
+                    displayName: name,
+                    color: '#fbbf24',
+                    value: projected,
+                    confirmed: 0,
+                    projected: projected,
+                    isProjectedNode: true
+                });
+            }
         });
 
         // Center Node
         const centerName = 'Cash Flow';
         const centerIndex = nodes.length;
-        // Center color always Green to match "Money Stream" idea, or Red if absolute deficit?
-        const balance = totalIncome - totalExpense;
-        const centerColor = '#10b981'; // Fixed Green for central flow
-        nodes.push({ name: centerName, color: centerColor });
+        // Center color
+        const centerColor = '#10b981';
+        nodes.push({ name: centerName, color: centerColor, value: totalIncome }); // Value here isn't strictly used for size by Recharts Sankey (it infers from links), but good for payload
 
         // Expense Nodes (Targets)
         const firstExpenseIndex = nodes.length;
-        // Sort expenses by value for nicer look
-        const sortedExpenses = Object.entries(expenseMap).sort((a, b) => b[1].val - a[1].val);
+        // Sort expenses by total value
+        const sortedExpenses = Object.entries(expenseMap).sort((a, b) => (b[1].confirmed + b[1].projected) - (a[1].confirmed + a[1].projected));
 
-        sortedExpenses.forEach(([name, { val, color }]) => {
-            nodes.push({ name, color });
+        sortedExpenses.forEach(([name, { confirmed, projected, color }]) => {
+            nodes.push({ name, color, value: confirmed + projected, confirmed, projected });
         });
 
-        // Surplus/Deficit
+        // Surplus/Deficit (Net Result)
+        // We calculate Net based on TOTALs. 
+        // If Income > Expense: Surplus.
+        // If Expense > Income: Deficit.
+        // Optional: Distinguish "Confirmed Surplus" vs "Projected Surplus"? 
+        // Complexity: High. Let's keep Surplus/Deficit as a single aggregate node for simplicity, 
+        // OR we try to flow "Projected Balance" separately. 
+        // For now: Aggregate Surplus/Deficit.
         let surplusIndex = -1;
         let deficitIndex = -1;
 
         if (totalIncome > totalExpense) {
             surplusIndex = nodes.length;
-            nodes.push({ name: 'Surplus', color: '#10b981' }); // Green
+            nodes.push({ name: 'Surplus', color: '#10b981', value: totalIncome - totalExpense });
         } else if (totalExpense > totalIncome) {
-            // Deficit as Source
             deficitIndex = nodes.length;
-            nodes.push({ name: 'Deficit', color: '#f59e0b' }); // Orange/Red
+            nodes.push({ name: 'Deficit', color: '#f59e0b', value: totalExpense - totalIncome });
         }
 
-        // --- Links ---
+        // --- LINKS ---
 
-        // --- Links ---
+        // Helper to add links
+        // We add two links per category if both confirmed and projected exist
+        // Source Index Mapping: 
+        // Income Nodes: 0 to (centerIndex - 1)
 
         // 1. Income -> Center
-        // Use darker colors for better visibility
-        Object.entries(incomeMap).forEach(([name, { val }], index) => {
+        // 1. Income -> Center (Iterate through the split nodes we just created)
+        for (let i = 0; i < centerIndex; i++) {
+            const node = nodes[i];
             links.push({
-                source: index,
+                source: i,
                 target: centerIndex,
-                value: val,
-                color: '#34d399' // Emerald 400
+                value: node.value,
+                color: node.isProjectedNode ? '#fbbf24' : '#34d399',
+                isProjected: node.isProjectedNode
             });
-        });
+        }
 
-        // 1b. Deficit -> Center
+        // 1b. Deficit -> Center (Treat as source of funds to balance equation? No, Deficit usually means we pulled from savings/credit)
+        // In Sankey logic: Income + Deficit = Expenses + Surplus
+        // We treat Deficit as an input to cover expenses.
         if (deficitIndex !== -1) {
             const deficitAmount = totalExpense - totalIncome;
-            links.push({
-                source: deficitIndex,
-                target: centerIndex,
-                value: deficitAmount,
-                color: '#fbbf24' // Amber 400
-            });
+            // Determining if deficit is confirmed or projected is tricky because it's a net result.
+            // Simplified: If (Confirmed Exp > Confirmed Inc), we have Confirmed Deficit.
+            // Remaining difference is Projected Deficit.
+
+            const confirmedDeficit = Math.max(0, totalExpenseConfirmed - totalIncomeConfirmed);
+            const totalDeficit = totalExpense - totalIncome; // (ExpC + ExpP) - (IncC + IncP)
+            const projectedDeficit = Math.max(0, totalDeficit - confirmedDeficit);
+
+            if (confirmedDeficit > 0) {
+                links.push({
+                    source: deficitIndex,
+                    target: centerIndex,
+                    value: confirmedDeficit,
+                    color: '#fbbf24',
+                    isProjected: false
+                });
+            }
+            if (projectedDeficit > 0) {
+                links.push({
+                    source: deficitIndex,
+                    target: centerIndex,
+                    value: projectedDeficit,
+                    color: '#fbbf24',
+                    isProjected: true
+                });
+            }
         }
 
         // 2. Center -> Expenses
-        sortedExpenses.forEach(([name, info], i) => {
-            links.push({
-                source: centerIndex,
-                target: firstExpenseIndex + i,
-                value: info.val,
-                color: '#f87171' // Red 400
-            });
+        sortedExpenses.forEach(([name, { confirmed, projected }], i) => {
+            const targetIdx = firstExpenseIndex + i; // Correct target index
+
+            if (confirmed > 0) {
+                links.push({
+                    source: centerIndex,
+                    target: targetIdx,
+                    value: confirmed,
+                    color: '#f87171',
+                    isProjected: false
+                });
+            }
+            if (projected > 0) {
+                links.push({
+                    source: centerIndex,
+                    target: targetIdx,
+                    value: projected,
+                    color: '#fbbf24',
+                    isProjected: true
+                });
+            }
         });
 
+        // 2b. Center -> Surplus
         // 2b. Center -> Surplus
         if (surplusIndex !== -1) {
             const surplusAmount = totalIncome - totalExpense;
@@ -202,7 +301,8 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
                 source: centerIndex,
                 target: surplusIndex,
                 value: surplusAmount,
-                color: '#34d399' // Emerald 400
+                color: '#34d399',
+                isProjected: false
             });
         }
 
@@ -239,7 +339,10 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
                 {!isCaixa ? (
                     <text x={tx} y={ty} textAnchor={textAnchor} alignmentBaseline="middle">
                         <tspan x={tx} dy="-0.6em" fontSize={11} fontWeight="600" fill="#111827">{payload.name}</tspan>
-                        <tspan x={tx} dy="1.2em" fontSize={10} fill="#6b7280">{formatCurrency(payload.value)}</tspan>
+                        <tspan x={tx} dy="1.2em" fontSize={10} fill="#6b7280">
+                            {formatCurrency(payload.value)}
+                            {(payload.projected > 0 && payload.confirmed > 0) ? ' (Mix)' : (payload.confirmed === 0 && payload.projected > 0 ? ' (Proj)' : '')}
+                        </tspan>
                     </text>
                 ) : (
                     <text x={tx} y={ty} textAnchor="middle">
@@ -254,11 +357,11 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
     // Custom Link to use specific colors
     const DemoLink = (props) => {
         const { sourceX, sourceY, targetX, targetY, linkWidth, payload } = props;
-        // Verify payload.color exists, else fallback
         const color = payload.color || '#9ca3af';
+        // Check for projected status (dashed)
+        const isProjected = payload.isProjected;
 
         // Calculate Bezier path for horizontal Sankey
-        // Standard Sankey curvature
         const deltaX = targetX - sourceX;
         const curvature = 0.5;
         const x1 = sourceX + deltaX * curvature;
@@ -269,7 +372,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
             C ${x1},${sourceY}
               ${x2},${targetY}
               ${targetX},${targetY}
-`;
+        `;
 
         return (
             <path
@@ -277,7 +380,8 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
                 stroke={color}
                 strokeWidth={Math.max(1, linkWidth)}
                 fill="none"
-                strokeOpacity={0.25} // More transparent
+                strokeOpacity={isProjected ? 0.4 : 0.25} // Slightly more opaque for dashed to be visible? Or keep same.
+                strokeDasharray={isProjected ? "4 4" : "0"}
                 style={{ transition: 'stroke-opacity 0.3s' }}
             />
         );
@@ -349,14 +453,41 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
                                 if (!active || !payload?.length) return null;
                                 const item = payload[0];
                                 const isLink = item.payload.source !== undefined;
-                                if (isLink) return (
-                                    <div className="bg-white p-2 border shadow-sm rounded text-xs">
-                                        {item.payload.source.name} → {item.payload.target.name}: <b>{formatCurrency(item.value)}</b>
-                                    </div>
-                                );
+
+                                if (isLink) {
+                                    const { source, target, value, isProjected } = item.payload;
+                                    return (
+                                        <div className="bg-white p-2 border shadow-sm rounded text-xs">
+                                            <div>{source.name} → {target.name}</div>
+                                            <div className="font-bold">{formatCurrency(value)}</div>
+                                            <div className={`uppercase text-[10px] tracking-wider font-semibold ${isProjected ? 'text-amber-500' : 'text-emerald-600'}`}>
+                                                {isProjected ? 'Projected' : 'Confirmed'}
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // Node Tooltip
+                                const { name, value, confirmed, projected } = item.payload;
                                 return (
-                                    <div className="bg-white p-2 border shadow-sm rounded text-xs">
-                                        {item.payload.name}: <b>{formatCurrency(item.value)}</b>
+                                    <div className="bg-white p-2 border shadow-sm rounded text-xs min-w-[120px]">
+                                        <div className="font-bold mb-1 border-b pb-1">{name}</div>
+                                        <div className="flex justify-between gap-4 mb-1">
+                                            <span>Total:</span>
+                                            <span className="font-bold">{formatCurrency(value)}</span>
+                                        </div>
+                                        {confirmed !== undefined && (
+                                            <>
+                                                <div className="flex justify-between gap-4 text-emerald-600">
+                                                    <span>Confirmed:</span>
+                                                    <span>{formatCurrency(confirmed)}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-4 text-amber-500">
+                                                    <span>Projected:</span>
+                                                    <span>{formatCurrency(projected)}</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 );
                             }} />
