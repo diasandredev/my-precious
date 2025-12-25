@@ -100,6 +100,7 @@ export function DashboardTab() {
                     <div className="sticky top-0 h-screen">
                         <DashboardRecentTransactions
                             transactions={data.transactions}
+                            categories={data.categories}
                             formatCurrency={formatCurrency}
                             className="h-full"
                         />

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Card, Button, Label, Input, Modal } from '../ui';
+import { Card, Button, Label, Input, Modal, IconPicker } from '../ui';
 import { Save, Plus, Trash2, Edit2, Palette } from 'lucide-react';
+import { getIcon } from '../../lib/icons';
 import { cn } from '../../lib/utils';
 
 export function SettingsTab() {
@@ -14,7 +15,8 @@ export function SettingsTab() {
     const [categoryForm, setCategoryForm] = useState({
         name: '',
         color: '#3b82f6',
-        type: 'EXPENSE'
+        type: 'EXPENSE',
+        icon: 'Tag'
     });
 
     const handleSaveSettings = () => {
@@ -27,7 +29,8 @@ export function SettingsTab() {
         setCategoryForm({
             name: category.name,
             color: category.color,
-            type: category.type || 'EXPENSE'
+            type: category.type || 'EXPENSE',
+            icon: category.icon || 'Tag'
         });
         setIsCategoryModalOpen(true);
     };
@@ -37,7 +40,8 @@ export function SettingsTab() {
         setCategoryForm({
             name: '',
             color: '#3b82f6', // Default Blue
-            type: 'EXPENSE'
+            type: 'EXPENSE',
+            icon: 'Tag'
         });
         setIsCategoryModalOpen(true);
     };
@@ -110,10 +114,10 @@ export function SettingsTab() {
                                     className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
                                     style={{ backgroundColor: `${cat.color}20` }}
                                 >
-                                    <div
-                                        className="w-4 h-4 rounded-full"
-                                        style={{ backgroundColor: cat.color }}
-                                    />
+                                    {(() => {
+                                        const Icon = getIcon(cat.icon);
+                                        return <Icon size={20} style={{ color: cat.color }} />;
+                                    })()}
                                 </div>
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-900">{cat.name}</h4>
@@ -192,6 +196,23 @@ export function SettingsTab() {
                                 />
                                 <span className="text-sm text-gray-500 font-mono uppercase">{categoryForm.color}</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <Label>Icon</Label>
+                        <div className="border rounded-md p-2 mt-2">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="text-sm text-gray-500">Selected:</span>
+                                {(() => {
+                                    const SelectedIcon = getIcon(categoryForm.icon);
+                                    return <SelectedIcon className="text-primary" />;
+                                })()}
+                            </div>
+                            <IconPicker
+                                selectedIcon={categoryForm.icon}
+                                onSelect={(icon) => setCategoryForm({ ...categoryForm, icon })}
+                            />
                         </div>
                     </div>
 

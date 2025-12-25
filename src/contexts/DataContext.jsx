@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { fetchUserData, queueAction, syncPendingActions } from '../services/sync';
 
 import { dbService, DATA_KEY } from '../services/db';
+import { DEFAULT_CATEGORY_ICONS } from '../lib/icons';
 
 const DataContext = createContext();
 
@@ -16,32 +17,32 @@ const initialData = {
     categories: [
         // Default Categories - Fallback if not loaded
         // Fixed/Essential
-        { id: 'cat_housing', name: 'Casa', color: '#ef4444', type: 'EXPENSE' },
-        { id: 'cat_internet', name: 'Internet', color: '#0ea5e9', type: 'EXPENSE' },
-        { id: 'cat_condo', name: 'Condominio', color: '#64748b', type: 'EXPENSE' },
-        { id: 'cat_luz', name: 'Luz', color: '#f59e0b', type: 'EXPENSE' },
-        { id: 'cat_taxes', name: 'Impostos', color: '#78716c', type: 'EXPENSE' },
+        { id: 'cat_housing', name: 'Casa', color: '#ef4444', type: 'EXPENSE', icon: 'Home' },
+        { id: 'cat_internet', name: 'Internet', color: '#0ea5e9', type: 'EXPENSE', icon: 'Wifi' },
+        { id: 'cat_condo', name: 'Condominio', color: '#64748b', type: 'EXPENSE', icon: 'Building2' },
+        { id: 'cat_luz', name: 'Luz', color: '#f59e0b', type: 'EXPENSE', icon: 'Zap' },
+        { id: 'cat_taxes', name: 'Impostos', color: '#78716c', type: 'EXPENSE', icon: 'FileText' },
 
         // Variable/Lifestyle
-        { id: 'cat_supermarket', name: 'Supermercado', color: '#34d399', type: 'EXPENSE' },
-        { id: 'cat_restaurant', name: 'Restaurantes', color: '#fbbf24', type: 'EXPENSE' },
-        { id: 'cat_transport', name: 'Transporte', color: '#3b82f6', type: 'EXPENSE' },
-        { id: 'cat_travel', name: 'Viagem', color: '#8b5cf6', type: 'EXPENSE' }, // Purple
-        { id: 'cat_subscription', name: 'Assinaturas', color: '#ec4899', type: 'EXPENSE' }, // Pink
-        { id: 'cat_shopping', name: 'Compras', color: '#f43f5e', type: 'EXPENSE' }, // Rose
-        { id: 'cat_clothing', name: 'Vestuario', color: '#d946ef', type: 'EXPENSE' }, // Fuchsia
-        { id: 'cat_pets', name: 'Yoda', color: '#a3a3a3', type: 'EXPENSE' },
-        { id: 'cat_personal_care', name: 'Cuidados pessoais', color: '#db2777', type: 'EXPENSE' },
-        { id: 'cat_pharmacy', name: 'Farmacia', color: '#ef4444', type: 'EXPENSE' }, // Red-500 similar to health
-        { id: 'cat_car', name: 'Carro', color: '#28c5f5ff', type: 'EXPENSE' },
+        { id: 'cat_supermarket', name: 'Supermercado', color: '#34d399', type: 'EXPENSE', icon: 'ShoppingCart' },
+        { id: 'cat_restaurant', name: 'Restaurantes', color: '#fbbf24', type: 'EXPENSE', icon: 'Utensils' },
+        { id: 'cat_transport', name: 'Transporte', color: '#3b82f6', type: 'EXPENSE', icon: 'Bus' },
+        { id: 'cat_travel', name: 'Viagem', color: '#8b5cf6', type: 'EXPENSE', icon: 'Plane' }, // Purple
+        { id: 'cat_subscription', name: 'Assinaturas', color: '#ec4899', type: 'EXPENSE', icon: 'CreditCard' }, // Pink
+        { id: 'cat_shopping', name: 'Compras', color: '#f43f5e', type: 'EXPENSE', icon: 'ShoppingBag' }, // Rose
+        { id: 'cat_clothing', name: 'Vestuario', color: '#d946ef', type: 'EXPENSE', icon: 'Shirt' }, // Fuchsia
+        { id: 'cat_pets', name: 'Yoda', color: '#a3a3a3', type: 'EXPENSE', icon: 'Dog' },
+        { id: 'cat_personal_care', name: 'Cuidados pessoais', color: '#db2777', type: 'EXPENSE', icon: 'Smile' },
+        { id: 'cat_pharmacy', name: 'Farmacia', color: '#ef4444', type: 'EXPENSE', icon: 'Pill' }, // Red-500 similar to health
+        { id: 'cat_car', name: 'Carro', color: '#28c5f5ff', type: 'EXPENSE', icon: 'Car' },
 
         // Income
-        { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME' },
-        { id: 'cat_bonus', name: 'Bonus', color: '#84cc16', type: 'INCOME' },
-        { id: 'cat_investments', name: 'Investimentos', color: '#14b8a6', type: 'INCOME' },
+        { id: 'cat_salary', name: 'Salario', color: '#22c55e', type: 'INCOME', icon: 'Banknote' },
+        { id: 'cat_bonus', name: 'Bonus', color: '#84cc16', type: 'INCOME', icon: 'Gift' },
+        { id: 'cat_investments', name: 'Investimentos', color: '#14b8a6', type: 'INCOME', icon: 'TrendingUp' },
 
         // Other
-        { id: 'cat_other', name: 'Outros', color: '#6b7280', type: 'EXPENSE' }
+        { id: 'cat_other', name: 'Outros', color: '#6b7280', type: 'EXPENSE', icon: 'MoreHorizontal' }
     ],
     settings: { id: 'general', mainCurrency: 'BRL' }
 };
@@ -122,6 +123,42 @@ export function DataProvider({ children }) {
 
                         // Force sync immediately as requested
                         console.log("Forcing immediate sync of default categories...");
+                        await syncPendingActions();
+                    } else if (finalCategories.some(c => !c.icon)) {
+                        // Migration Check: If any category is missing an icon
+                        console.log("Migrating categories to have icons...");
+                        const migratedCategories = finalCategories.map(cat => {
+                            if (cat.icon) return cat;
+
+                            // Assign default icon if available, else generic.
+                            // If it's a known default category, use the mapping.
+                            let newIcon = DEFAULT_CATEGORY_ICONS[cat.id];
+
+                            // If not a default category, try to guess or just use Tag
+                            if (!newIcon) {
+                                newIcon = 'Tag';
+                            }
+
+                            return { ...cat, icon: newIcon };
+                        });
+
+                        finalCategories = migratedCategories;
+
+                        // Update remote
+                        await Promise.all(finalCategories.map(cat => {
+                            // Only update valid cats that changed
+                            const original = remoteData.categories.find(c => c.id === cat.id);
+                            if (!original || !original.icon) {
+                                return queueAction({
+                                    type: 'update',
+                                    collection: `users/${currentUser.uid}/categories`,
+                                    id: cat.id,
+                                    data: { icon: cat.icon }
+                                }, { autoSync: false });
+                            }
+                            return Promise.resolve();
+                        }));
+
                         await syncPendingActions();
                     }
 
