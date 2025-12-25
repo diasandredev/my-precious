@@ -48,8 +48,14 @@ export const parseC6CSV = (csvContent) => {
             }
 
             // Parse Date (DD/MM/YYYY)
-            const [day, month, year] = dateStr.split('/');
-            let dateObj = new Date(year, month - 1, day);
+            let [day, month, year] = dateStr.split('/');
+
+            // Handle 2-digit years (e.g. 25 -> 2025)
+            if (year && year.length === 2) {
+                year = '20' + year;
+            }
+
+            let dateObj = new Date(Number(year), Number(month) - 1, Number(day));
 
             // Parse Amount
             const amount = parseFloat(amountStr);
@@ -129,8 +135,14 @@ export const parseXpCSV = (csvContent) => {
             const installmentStr = columns[4]?.trim() || '-';
 
             // Parse Date (DD/MM/YYYY)
-            const [day, month, year] = dateStr.split('/');
-            let dateObj = new Date(year, month - 1, day);
+            let [day, month, year] = dateStr.split('/');
+
+            // Handle 2-digit years (e.g. 25 -> 2025)
+            if (year && year.length === 2) {
+                year = '20' + year;
+            }
+
+            let dateObj = new Date(Number(year), Number(month) - 1, Number(day));
 
             // Parse Amount
             // Remove 'R$', '.', replace ',' with '.'

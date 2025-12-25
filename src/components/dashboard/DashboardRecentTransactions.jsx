@@ -3,6 +3,13 @@ import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { getIcon } from '../../lib/icons';
 
+// Helper to parse date string YYYY-MM-DD as local date without timezone offset issues
+const parseLocalDate = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+};
+
 export function DashboardRecentTransactions({ transactions, categories, formatCurrency, className }) {
     return (
         <Card className={cn("pl-5 pb-0 pt-0 pr-0 bg-white space-y-3 overflow-hidden flex flex-col rounded-none shadow-none", className)}>
@@ -23,19 +30,39 @@ function TransactionList({ transactions, categories, formatCurrency }) {
         return <p className="text-sm text-gray-400">No recent transactions.</p>;
     }
 
+    // Filter transactions: only show until the end of next month
+    const today = new Date();
+    const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0); // Last day of next month
+
+    const filteredTransactions = transactions.filter(t => {
+        const tDate = parseLocalDate(t.date);
+        return tDate <= endOfNextMonth;
+    });
+
+    if (filteredTransactions.length === 0) {
+        return <p className="text-sm text-gray-400">No transactions to display.</p>;
+    }
+
     // Sort by date desc
-    const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sorted = [...filteredTransactions].sort((a, b) => parseLocalDate(b.date) - parseLocalDate(a.date));
 
     // Group by Today, Yesterday, Date
     const grouped = sorted.reduce((acc, t) => {
-        const d = new Date(t.date);
-        const today = new Date();
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
+        const d = parseLocalDate(t.date);
 
-        let key = format(d, 'MMM d');
-        if (d.toDateString() === today.toDateString()) key = 'TODAY';
-        else if (d.toDateString() === yesterday.toDateString()) key = 'YESTERDAY';
+        // Reset time portion of today/yesterday for accurate comparison
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        yesterdayDate.setHours(0, 0, 0, 0);
+
+        let key = format(d, 'dd/MM/yyyy'); // Updated format
+
+        // Check if it matches today/yesterday exactly
+        if (d.getTime() === todayDate.getTime()) key = 'TODAY';
+        else if (d.getTime() === yesterdayDate.getTime()) key = 'YESTERDAY';
 
         if (!acc[key]) acc[key] = [];
         acc[key].push(t);
@@ -50,6 +77,7 @@ function TransactionList({ transactions, categories, formatCurrency }) {
                     const category = categories?.find(c => c.id === t.categoryId);
                     const Icon = category?.icon ? getIcon(category.icon) : null;
                     const color = category?.color || (t.type === 'INCOME' ? '#10b981' : '#3b82f6');
+                    const tDate = parseLocalDate(t.date);
 
                     return (
                         <TransactionItem
@@ -71,7 +99,7 @@ function TransactionList({ transactions, categories, formatCurrency }) {
                                 )
                             }
                             title={t.title}
-                            subtitle={format(new Date(t.date), 'MMM d, h:mm a')}
+                            subtitle={format(tDate, 'dd/MM/yyyy')} // Updated format
                             amountDisplay={formatCurrency ? (t.type === 'EXPENSE' ? '-' : '+') + formatCurrency(t.amount) : (t.type === 'EXPENSE' ? '-' : '+') + `$${t.amount}`}
                             amountColor={t.type === 'INCOME' ? "text-emerald-500" : "text-gray-900"}
                             type={t.type}
