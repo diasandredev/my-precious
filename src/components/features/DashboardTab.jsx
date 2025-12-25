@@ -90,6 +90,7 @@ export function DashboardTab() {
                     {/* Cash Flow Sankey */}
                     <CashFlowSankey
                         transactions={data.transactions}
+                        recurringTransactions={data.recurringTransactions}
                         categories={data.categories}
                         formatCurrency={formatCurrency}
                     />

@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip, Rectangle, Layer } from 'recharts';
 import { Card } from '../ui/Card';
-import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronDown } from 'lucide-react';
+import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 
-export function CashFlowSankey({ transactions, categories, formatCurrency }) {
+export function CashFlowSankey({ transactions, recurringTransactions = [], categories, formatCurrency }) {
     // Default to current month
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -24,26 +25,26 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         };
     }, [dropdownRef]);
 
-    // Generate month options based on transactions
+    // Generate month options based on transactions AND future projections
     const monthOptions = useMemo(() => {
-        if (!transactions || transactions.length === 0) {
-            // Fallback to current month if no data
-            return [{
-                year: format(new Date(), 'yyyy'),
-                months: [{
-                    value: format(new Date(), 'yyyy-MM'),
-                    label: format(new Date(), 'MMMM', { locale: ptBR })
-                }]
-            }];
+        const uniqueMonths = new Set();
+        const now = new Date();
+
+        // 1. Add Recent Past & Present (from Transactions)
+        if (transactions) {
+            transactions.forEach(t => {
+                if (t.date && (t.status === 'CONFIRMED' || t.status === 'PROJECTED')) {
+                    const d = parseISO(t.date);
+                    uniqueMonths.add(format(d, 'yyyy-MM'));
+                }
+            });
         }
 
-        const uniqueMonths = new Set();
-        transactions.forEach(t => {
-            if (t.date && (t.status === 'CONFIRMED' || t.status === 'PROJECTED')) {
-                const d = parseISO(t.date);
-                uniqueMonths.add(format(d, 'yyyy-MM'));
-            }
-        });
+        // 2. Add Future Months (Next 12 months)
+        for (let i = 0; i <= 12; i++) {
+            const d = addMonths(now, i);
+            uniqueMonths.add(format(d, 'yyyy-MM'));
+        }
 
         // Group by Year
         const grouped = {};
@@ -53,11 +54,6 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
             .forEach(m => {
                 const [year, month] = m.split('-');
                 const d = new Date(parseInt(year), parseInt(month) - 1);
-
-                // Filter out future months (keep current month and past)
-                const now = new Date();
-                const currentMonthStart = startOfMonth(now);
-                if (d > currentMonthStart) return;
 
                 if (!grouped[year]) grouped[year] = [];
                 grouped[year].push({
@@ -94,14 +90,11 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         const startDate = startOfMonth(new Date(parseInt(year), parseInt(month) - 1));
         const endDate = endOfMonth(startDate);
 
-        // 1. Filter Transactions (CONFIRMED + PROJECTED)
-        const filtered = transactions.filter(t => {
-            if (!t.date) return false;
-            // Allow CONFIRMED and PROJECTED
-            if (t.status !== 'CONFIRMED' && t.status !== 'PROJECTED') return false;
-            const d = parseISO(t.date);
-            return isWithinInterval(d, { start: startDate, end: endDate });
-        });
+        // 1. Get Financials for Month (Realized + Recurring)
+        const [yearInt, monthInt] = selectedMonth.split('-');
+        const currentMonthDate = new Date(parseInt(yearInt), parseInt(monthInt) - 1);
+
+        const filtered = getFinancialsForMonth(currentMonthDate, recurringTransactions, transactions, []);
 
         // 2. Aggregate Data
         // Structure: { [catName]: { confirmed: 0, projected: 0, color: ... } }
@@ -307,7 +300,7 @@ export function CashFlowSankey({ transactions, categories, formatCurrency }) {
         }
 
         return { nodes, links };
-    }, [transactions, categories, selectedMonth]);
+    }, [transactions, recurringTransactions, categories, selectedMonth]);
 
     // Custom Node
     const MyCustomNode = ({ x, y, width, height, index, payload, containerWidth }) => {
