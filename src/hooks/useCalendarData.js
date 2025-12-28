@@ -121,7 +121,7 @@ export function useCalendarData() {
             startDate: startDateStr,
             endDate: item.endDate || '',
             isVariable: item.isVariable || false,
-            status: item.status || 'CONFIRMED'
+            status: item.status === 'PROJECTED' ? 'CONFIRMED' : (item.status || 'CONFIRMED')
         });
         setIsModalOpen(true);
     };

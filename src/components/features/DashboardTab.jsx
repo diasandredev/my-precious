@@ -8,7 +8,9 @@ import { DashboardFinancialOverview } from '../dashboard/DashboardFinancialOverv
 import { DashboardExpensesBreakdown } from '../dashboard/DashboardExpensesBreakdown';
 import { CashFlowSankey } from '../dashboard/CashFlowSankey';
 
-export function DashboardTab() {
+import { FinancialScore } from '../dashboard/FinancialScore';
+
+export function DashboardTab({ onNavigate }) {
     // ... data fetching ...
     const {
         netWorthStats,
@@ -31,11 +33,15 @@ export function DashboardTab() {
     return (
         <div className="space-y-4">
             {/* Top Cards: Spending, Income, Net Worth */}
-            {/* Top Cards: Spending, Income, Net Worth */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-full">
                 {/* Left Column: Charts & Data (Takes 9/12) */}
                 <div className="lg:col-span-9 flex flex-col">
-                    {/* Top Cards: Spending, Income, Net Worth */}
+                    {/* Financial Score */}
+                    <div className="bg-gray-50/50">
+                        <FinancialScore onViewInsights={() => onNavigate && onNavigate('insights')} />
+                    </div>
+
+                    {/* Top Cards: Metrics */}
                     <DashboardCards
                         currentMonthMetrics={currentMonthMetrics}
                         netWorthStats={netWorthStats}

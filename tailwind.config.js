@@ -63,6 +63,10 @@ export default {
                         height: 'var(--radix-accordion-content-height)'
                     }
                 },
+                'spin-slow': {
+                    from: { transform: 'rotate(0deg)' },
+                    to: { transform: 'rotate(360deg)' }
+                },
                 'accordion-up': {
                     from: {
                         height: 'var(--radix-accordion-content-height)'
@@ -74,7 +78,8 @@ export default {
             },
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
-                'accordion-up': 'accordion-up 0.2s ease-out'
+                'accordion-up': 'accordion-up 0.2s ease-out',
+                'spin-slow': 'spin-slow 20s linear infinite'
             },
             fontFamily: {
                 logo: ['"Playwrite NO"', '"Playwrite Norge"', 'cursive']

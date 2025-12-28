@@ -37,7 +37,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardTab />;
+        return <DashboardTab onNavigate={setActiveTab} />;
       case 'accounts':
         return <AccountsTab />;
       case 'projections':
