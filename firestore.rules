@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Explicitly deny default access (good practice, though implicit in Firestore)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User Data: strict owner-only access
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
