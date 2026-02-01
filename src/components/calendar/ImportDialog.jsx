@@ -50,71 +50,89 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
             className="sm:max-w-[425px]"
         >
             {!source ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
-                        <button
-                            onClick={() => setSource('c6')}
-                        className="flex flex-col items-center justify-center space-y-4 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 hover:border-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+                    <button
+                        onClick={() => setSource('c6')}
+                        className="group flex items-center p-4 rounded-xl border border-gray-200 bg-white hover:border-black hover:shadow-md transition-all text-left"
                     >
-                        <div className="rounded-full bg-primary/10 p-4">
-                            <CreditCard className="h-8 w-8 text-primary" />
+                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                            <CreditCard size={20} className="text-gray-600 group-hover:text-white" />
                         </div>
-                        <div className="text-center">
-                            <h3 className="font-medium text-gray-900">C6 Bank</h3>
-                            <p className="text-sm text-gray-500">Import CSV</p>
+                        <div className="ml-4 flex-1">
+                            <h3 className="font-semibold text-gray-900">C6 Bank</h3>
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wide">
+                                CSV
+                            </span>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setSource('xp')}
-                        className="flex flex-col items-center justify-center space-y-4 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 hover:border-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        className="group flex items-center p-4 rounded-xl border border-gray-200 bg-white hover:border-yellow-500 hover:shadow-md transition-all text-left"
                     >
-                        <div className="rounded-full bg-yellow-500/10 p-4">
-                            <CreditCard className="h-8 w-8 text-yellow-600" />
+                        <div className="h-10 w-10 rounded-full bg-yellow-50 flex items-center justify-center group-hover:bg-yellow-500 group-hover:text-white transition-colors">
+                            <CreditCard size={20} className="text-yellow-600 group-hover:text-white" />
                         </div>
-                        <div className="text-center">
-                            <h3 className="font-medium text-gray-900">XP Inv.</h3>
-                            <p className="text-sm text-gray-500">Import CSV</p>
+                        <div className="ml-4 flex-1">
+                            <h3 className="font-semibold text-gray-900">XP Inv.</h3>
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wide">
+                                CSV
+                            </span>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setSource('picpay')}
-                        className="flex flex-col items-center justify-center space-y-4 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 hover:border-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        className="group flex items-center p-4 rounded-xl border border-gray-200 bg-white hover:border-green-500 hover:shadow-md transition-all text-left"
                     >
-                        <div className="rounded-full bg-green-500/10 p-4">
-                            <FileText className="h-8 w-8 text-green-600" />
+                        <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-colors">
+                            <FileText size={20} className="text-green-600 group-hover:text-white" />
                         </div>
-                        <div className="text-center">
-                            <h3 className="font-medium text-gray-900">PicPay</h3>
-                            <p className="text-sm text-gray-500">Import PDF</p>
+                        <div className="ml-4 flex-1">
+                            <h3 className="font-semibold text-gray-900">PicPay</h3>
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-50 text-red-600 uppercase tracking-wide">
+                                PDF
+                            </span>
                         </div>
                     </button>
 
                     <button
                         onClick={() => setSource('itau')}
-                        className="flex flex-col items-center justify-center space-y-4 rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 hover:border-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        className="group flex items-center p-4 rounded-xl border border-gray-200 bg-white hover:border-orange-500 hover:shadow-md transition-all text-left"
                     >
-                        <div className="rounded-full bg-orange-500/10 p-4">
-                            <FileText className="h-8 w-8 text-orange-600" />
+                        <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                            <FileText size={20} className="text-orange-600 group-hover:text-white" />
                         </div>
-                        <div className="text-center">
-                            <h3 className="font-medium text-gray-900">Itaú</h3>
-                            <p className="text-sm text-gray-500">Import PDF</p>
+                        <div className="ml-4 flex-1">
+                            <h3 className="font-semibold text-gray-900">Itaú</h3>
+                            <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-50 text-red-600 uppercase tracking-wide">
+                                PDF
+                            </span>
                         </div>
                     </button>
                 </div>
             ) : (
-                <div className="space-y-6 py-4">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
-                        <button onClick={() => { setSource(null); setFile(null); }} className="hover:text-primary transition-colors">
-                            Select Source
+                <div className="space-y-6 py-2">
+                    {/* Breadcrumb Navigation */}
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <button 
+                            onClick={() => { setSource(null); setFile(null); }} 
+                            className="hover:text-gray-900 font-medium transition-colors flex items-center gap-1"
+                        >
+                            Import
                         </button>
-                        <span>/</span>
-                        <span className="font-medium text-foreground">
-                            {source === 'c6' ? 'C6 Bank' : 
-                             source === 'xp' ? 'XP Investimentos' : 
-                             source === 'picpay' ? 'PicPay' : 'Itaú'}
-                        </span>
+                        <span className="text-gray-300">/</span>
+                        <div className="flex items-center gap-2">
+                            {source === 'c6' && <CreditCard size={14} className="text-gray-600" />}
+                            {source === 'xp' && <CreditCard size={14} className="text-yellow-600" />}
+                            {source === 'picpay' && <FileText size={14} className="text-green-600" />}
+                            {source === 'itau' && <FileText size={14} className="text-orange-600" />}
+                            <span className="font-semibold text-gray-900">
+                                {source === 'c6' ? 'C6 Bank' : 
+                                 source === 'xp' ? 'XP Investimentos' : 
+                                 source === 'picpay' ? 'PicPay' : 'Itaú'}
+                            </span>
+                        </div>
                     </div>
 
                     <div
@@ -134,24 +152,32 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
                         />
 
                         {file ? (
-                            <div className="space-y-2 animate-in fade-in zoom-in-95">
-                                <FileText className="mx-auto h-12 w-12 text-primary" />
-                                <p className="text-sm font-medium text-primary">
-                                    {file.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    Click to change file
-                                </p>
+                            <div className="space-y-3 animate-in fade-in zoom-in-95">
+                                <div className="mx-auto h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <FileText className="h-8 w-8 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="text-base font-semibold text-gray-900 break-all px-4">
+                                        {file.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {(file.size / 1024).toFixed(1)} KB • Click to change
+                                    </p>
+                                </div>
                             </div>
                         ) : (
-                            <div className="space-y-2">
-                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                <p className="text-sm font-medium text-gray-900">
-                                    Click to upload {source === 'picpay' || source === 'itau' ? 'PDF' : 'CSV'}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    or drag and drop
-                                </p>
+                            <div className="space-y-3">
+                                <div className="mx-auto h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                    <Upload className="h-8 w-8 text-gray-400 group-hover:text-primary transition-colors" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-900">
+                                        Click to upload {source === 'picpay' || source === 'itau' ? 'PDF' : 'CSV'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        or drag and drop your file here
+                                    </p>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -167,9 +193,9 @@ export function ImportDialog({ isOpen, onClose, onImport }) {
                         <Button
                             onClick={handleSubmit}
                             disabled={!file || isProcessing}
-                            className="bg-primary hover:bg-primary/90"
+                            className="bg-black hover:bg-gray-800 text-white"
                         >
-                            {isProcessing ? 'Importing...' : 'Import'}
+                            {isProcessing ? 'Importing...' : 'Start Import'}
                         </Button>
                     </div>
                 </div>
