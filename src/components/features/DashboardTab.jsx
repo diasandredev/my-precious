@@ -1,4 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { Helmet } from 'react-helmet-async';
 import { DashboardCards } from '../dashboard/DashboardCards';
 import { DashboardCurrencyCards } from '../dashboard/DashboardCurrencyCards';
 import { DashboardAssetCharts } from '../dashboard/DashboardAssetCharts';
@@ -8,7 +10,8 @@ import { DashboardFinancialOverview } from '../dashboard/DashboardFinancialOverv
 import { DashboardExpensesBreakdown } from '../dashboard/DashboardExpensesBreakdown';
 import { CashFlowSankey } from '../dashboard/CashFlowSankey';
 
-export function DashboardTab({ onNavigate }) {
+export function DashboardTab() {
+    const navigate = useNavigate();
     // ... data fetching ...
     const {
         netWorthStats,
@@ -30,6 +33,11 @@ export function DashboardTab({ onNavigate }) {
 
     return (
         <div className="space-y-4">
+            <Helmet>
+                <title>Dashboard - Precious</title>
+                <meta name="description" content="Overview of your financial health, including net worth, recent transactions, and asset allocation." />
+                <link rel="canonical" href="https://my-precious-app.com/" />
+            </Helmet>
             {/* Top Cards: Spending, Income, Net Worth */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-full">
                 {/* Left Column: Charts & Data (Takes 9/12) */}

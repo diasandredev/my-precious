@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useCalendarData } from '../../hooks/useCalendarData';
 import { CalendarHeader } from '../calendar/CalendarHeader';
 import { CalendarGrid } from '../calendar/CalendarGrid';
@@ -81,6 +82,11 @@ export function CalendarTab() {
 
     return (
         <div className="space-y-6">
+            <Helmet>
+                <title>Calendar - Precious</title>
+                <meta name="description" content="View and manage your monthly financial transactions in a calendar view." />
+                <link rel="canonical" href="https://my-precious-app.com/calendar" />
+            </Helmet>
             <CalendarHeader
                 currentMonth={currentMonth}
                 setCurrentMonth={setCurrentMonth}

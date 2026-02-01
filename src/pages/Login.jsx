@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../services/auth';
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
 import logo from '../assets/logo.png';
@@ -50,7 +51,12 @@ export function Login() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50/50 p-4">
+        <main className="flex min-h-screen items-center justify-center bg-gray-50/50 p-4">
+            <Helmet>
+                <title>{isSignUp ? 'Create Account - Precious' : 'Login - Precious'}</title>
+                <meta name="description" content="Securely access your Precious dashboard to manage your finances, track expenses, and view insights." />
+                <link rel="canonical" href="https://my-precious-app.com/login" />
+            </Helmet>
             <Card className="w-full max-w-md shadow-xl border-gray-100/50 bg-white/80 backdrop-blur-xl">
                 <CardHeader className="space-y-4 text-center pb-2">
                     <div className="flex justify-center mb-4 mt-4">
@@ -150,6 +156,6 @@ export function Login() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </main>
     );
 }

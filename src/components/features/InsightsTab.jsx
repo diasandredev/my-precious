@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState, useMemo } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { calculateMonthlyExpenses, analyzeTrends, identifyTopCategories, aggregateMonthlyData } from '../../lib/insights';
@@ -531,6 +532,11 @@ function InsightsTabContent() {
 export function InsightsTab() {
     return (
         <InsightsSettingsProvider>
+            <Helmet>
+                <title>Insights - Precious</title>
+                <meta name="description" content="Deep dive into your spending habits with detailed charts, trends, and financial scoring." />
+                <link rel="canonical" href="https://my-precious-app.com/insights" />
+            </Helmet>
             <InsightsTabContent />
         </InsightsSettingsProvider>
     );

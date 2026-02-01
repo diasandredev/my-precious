@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Wallet, TrendingUp, Calendar as CalendarIcon, Bell, Settings, LogOut, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import logo from '../../assets/logo.png';
@@ -7,7 +8,7 @@ import { useData } from '../../contexts/DataContext';
 import { analyzeTrends, calculateMonthlyExpenses } from '../../lib/insights';
 import { format } from 'date-fns';
 
-export function Sidebar({ activeTab, onTabChange }) {
+export function Sidebar() {
     const handleLogout = async () => {
         try {
             await logout();
@@ -45,8 +46,6 @@ export function Sidebar({ activeTab, onTabChange }) {
             good: insights.filter(i => i.type === 'good').length
         };
 
-        // Return null if all are 0? Or always show if data exists?
-        // User screenshot shows counts.
         if (counts.alert === 0 && counts.warning === 0 && counts.good === 0) return null;
 
         return counts;
@@ -54,58 +53,62 @@ export function Sidebar({ activeTab, onTabChange }) {
 
     const menuItems = {
         main: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'accounts', label: 'Accounts', icon: Wallet },
-            { id: 'projections', label: 'Projections', icon: TrendingUp },
-            { id: 'insights', label: 'Insights', icon: Lightbulb, badge: alertCount },
-            { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+            { id: '/', label: 'Dashboard', icon: LayoutDashboard },
+            { id: '/accounts', label: 'Accounts', icon: Wallet },
+            { id: '/projections', label: 'Projections', icon: TrendingUp },
+            { id: '/insights', label: 'Insights', icon: Lightbulb, badge: alertCount },
+            { id: '/calendar', label: 'Calendar', icon: CalendarIcon },
         ],
         personal: [
-            { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'settings', label: 'Settings', icon: Settings },
+            { id: '/notifications', label: 'Notifications', icon: Bell },
+            { id: '/settings', label: 'Settings', icon: Settings },
         ]
     };
 
-    const SidebarItem = ({ item, isActive }) => (
-        <button
-            onClick={() => onTabChange(item.id)}
-            className={cn(
+    const SidebarItem = ({ item }) => (
+        <NavLink
+            to={item.id}
+            className={({ isActive }) => cn(
                 "flex items-center gap-3 px-6 py-3 w-full text-sm transition-all duration-200 relative",
                 isActive
                     ? "bg-gray-100 text-black font-bold border-l-4 border-black"
                     : "text-gray-500 hover:text-gray-900 hover:bg-gray-50 font-medium border-l-4 border-transparent"
             )}
         >
-            <item.icon size={20} className={isActive ? "text-black" : "text-gray-400"} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="flex-1 text-left">{item.label}</span>
-            {item.badge && (
-                typeof item.badge === 'object' ? (
-                    <div className="flex items-center h-5 rounded-md overflow-hidden text-[10px] font-bold min-w-fit">
-                        {item.badge.alert > 0 && (
-                            <span className="bg-red-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
-                                {item.badge.alert}
-                            </span>
-                        )}
-                        {item.badge.warning > 0 && (
-                            <span className="bg-amber-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
-                                {item.badge.warning}
-                            </span>
-                        )}
-                        {item.badge.good > 0 && (
-                            <span className="bg-emerald-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
-                                {item.badge.good}
-                            </span>
-                        )}
-                    </div>
-                ) : (
-                    typeof item.badge === 'number' && item.badge > 0 && (
-                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-                            {item.badge}
-                        </span>
-                    )
-                )
+            {({ isActive }) => (
+                <>
+                    <item.icon size={20} className={isActive ? "text-black" : "text-gray-400"} strokeWidth={isActive ? 2.5 : 2} />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.badge && (
+                        typeof item.badge === 'object' ? (
+                            <div className="flex items-center h-5 rounded-md overflow-hidden text-[10px] font-bold min-w-fit">
+                                {item.badge.alert > 0 && (
+                                    <span className="bg-red-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
+                                        {item.badge.alert}
+                                    </span>
+                                )}
+                                {item.badge.warning > 0 && (
+                                    <span className="bg-amber-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
+                                        {item.badge.warning}
+                                    </span>
+                                )}
+                                {item.badge.good > 0 && (
+                                    <span className="bg-emerald-500 text-white px-1.5 h-full flex items-center justify-center min-w-[1.2rem]">
+                                        {item.badge.good}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            typeof item.badge === 'number' && item.badge > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                                    {item.badge}
+                                </span>
+                            )
+                        )
+                    )}
+                </>
             )}
-        </button>
+        </NavLink>
     );
 
     return (
@@ -125,7 +128,6 @@ export function Sidebar({ activeTab, onTabChange }) {
                         <SidebarItem
                             key={item.id}
                             item={item}
-                            isActive={activeTab === item.id}
                         />
                     ))}
                 </div>
@@ -138,7 +140,6 @@ export function Sidebar({ activeTab, onTabChange }) {
                         <SidebarItem
                             key={item.id}
                             item={item}
-                            isActive={activeTab === item.id}
                         />
                     ))}
                 </div>
@@ -157,3 +158,4 @@ export function Sidebar({ activeTab, onTabChange }) {
         </aside>
     );
 }
+

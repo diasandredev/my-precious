@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useData } from '../../contexts/DataContext';
 import { Card, Button, Label, Input, Modal, IconPicker } from '../ui';
 import { Save, Plus, Trash2, Edit2, Palette } from 'lucide-react';
@@ -64,6 +65,11 @@ export function SettingsTab() {
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto pb-8">
+            <Helmet>
+                <title>Settings - Precious</title>
+                <meta name="description" content="Manage your application preferences, currencies, and transaction categories." />
+                <link rel="canonical" href="https://my-precious-app.com/settings" />
+            </Helmet>
             <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Settings</h2>
 
             {/* General Preferences */}

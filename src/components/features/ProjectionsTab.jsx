@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { format, addMonths } from 'date-fns';
 import { TrendingUp } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
@@ -161,6 +162,11 @@ export function ProjectionsTab() {
 
     return (
         <div className="space-y-6 pb-12">
+            <Helmet>
+                <title>Projections - Precious</title>
+                <meta name="description" content="Forecast your future wealth based on recurring patterns and average spending habits." />
+                <link rel="canonical" href="https://my-precious-app.com/projections" />
+            </Helmet>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { useAccountsData } from '../../hooks/useAccountsData';
+import { Helmet } from 'react-helmet-async';
 import { AccountsHeader } from '../accounts/AccountsHeader';
 import { AccountsTable } from '../accounts/AccountsTable';
 import { AccountsHistory } from '../accounts/AccountsHistory';
@@ -40,6 +41,11 @@ export function AccountsTab() {
 
     return (
         <div className="space-y-6">
+            <Helmet>
+                <title>Accounts - Precious</title>
+                <meta name="description" content="Manage your bank accounts, investments, and track historical balances." />
+                <link rel="canonical" href="https://my-precious-app.com/accounts" />
+            </Helmet>
             <AccountsHeader
                 isUpdateMode={isUpdateMode}
                 setIsUpdateMode={setIsUpdateMode}
