@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { Helmet } from 'react-helmet-async';
+import { PageHeader } from '../layout/PageHeader';
 import { DashboardCards } from '../dashboard/DashboardCards';
 import { DashboardCurrencyCards } from '../dashboard/DashboardCurrencyCards';
 import { DashboardAssetCharts } from '../dashboard/DashboardAssetCharts';
@@ -38,12 +39,14 @@ export function DashboardTab() {
                 <meta name="description" content="Overview of your financial health, including net worth, recent transactions, and asset allocation." />
                 <link rel="canonical" href="https://my-precious-app.com/" />
             </Helmet>
-            {/* Top Cards: Spending, Income, Net Worth */}
+
+            {/* Top Cards: Metrics */}
+            {/* The previous error was due to malformed grid structure after removing the header.
+                We need to restore the main grid wrapper for layout. */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-full">
                 {/* Left Column: Charts & Data (Takes 9/12) */}
                 <div className="lg:col-span-9 flex flex-col">
                     
-                    {/* Top Cards: Metrics */}
                     <DashboardCards
                         currentMonthMetrics={currentMonthMetrics}
                         netWorthStats={netWorthStats}

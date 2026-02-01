@@ -12,6 +12,7 @@ import { InsightsSettingsProvider, useInsightsSettings } from '../../contexts/In
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowLeft, ArrowRight, TrendingUp, TrendingDown, AlertTriangle, Wallet, PieChart, LineChart, Settings } from 'lucide-react';
+import { PageHeader } from '../layout/PageHeader';
 
 function InsightsTabContent() {
     const { data, formatCurrency } = useData();
@@ -168,16 +169,10 @@ function InsightsTabContent() {
             />
 
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <TrendingUp className="h-6 w-6" />
-                        Financial Insights
-                    </h1>
-                    <p className="text-gray-500 mt-1">Analyze your spending patterns and discover trends</p>
-                </div>
-
-                {/* Right Side: Month Navigation (Styled like Projections controls) */}
+            <PageHeader
+                title="Financial Insights"
+                description="Analyze your spending patterns and discover trends"
+            >
                 <div className="flex items-center gap-2">
                     {/* Settings Button */}
                     <button
@@ -212,7 +207,7 @@ function InsightsTabContent() {
                         </button>
                     </div>
                 </div>
-            </div>
+            </PageHeader>
 
             {/* Financial Score for Selected Month */}
             <div className="mb-6">

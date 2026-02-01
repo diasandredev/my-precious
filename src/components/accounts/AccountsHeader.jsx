@@ -1,6 +1,7 @@
 import { Edit2, Plus, Calendar, Save } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { SyncStatus } from '../features/SyncStatus'; // Ensure path is correct, might be ../../features/SyncStatus if inside components/accounts
+import { SyncStatus } from '../features/SyncStatus';
+import { PageHeader } from '../layout/PageHeader';
 
 export function AccountsHeader({
     isUpdateMode,
@@ -12,27 +13,11 @@ export function AccountsHeader({
     saveBalances,
     isLoadingRates
 }) {
-    // Determine path to SyncStatus. If this file is in src/components/accounts, 
-    // and SyncStatus is in src/components/features, then import is correct as ../features/SyncStatus?
-    // Wait, components/accounts -> .. -> components -> features -> SyncStatus.
-    // So import { SyncStatus } from '../features/SyncStatus'; is WRONG.
-    // It should be '../features/SyncStatus' relative to 'components/accounts'? No.
-    // 'components/accounts' is sibling to 'components/features'.
-    // So '../features/SyncStatus' is correct.
-    // BUT SyncStatus export is named or default?
-    // In AccountsTab original: import { SyncStatus } from './SyncStatus'; (same dir).
-    // So SyncStatus is probably a named export in SyncStatus.jsx or default.
-    // In Step 97 (AccountsTab read), line 9: import { SyncStatus } from './SyncStatus';
-    // So it is in components/features/SyncStatus.jsx.
-    // From components/accounts, it is ../features/SyncStatus.
-
     return (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight text-gray-900">Accounts & Net Worth</h2>
-                <p className="text-gray-500">Manage your asset sources and track their value.</p>
-            </div>
-
+        <PageHeader
+            title="Accounts & Net Worth"
+            description="Manage your asset sources and track their value."
+        >
             <div className="flex gap-2 items-center">
                 <SyncStatus />
                 {!isUpdateMode ? (
@@ -65,6 +50,7 @@ export function AccountsHeader({
                     </>
                 )}
             </div>
-        </div>
+        </PageHeader>
     );
 }
+

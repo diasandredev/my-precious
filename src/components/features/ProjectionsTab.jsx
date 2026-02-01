@@ -7,6 +7,7 @@ import { Input, Label } from '../ui';
 import { cn } from '../../lib/utils';
 import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 import { WealthProjectionChart } from './WealthProjectionChart';
+import { PageHeader } from '../layout/PageHeader';
 
 export function ProjectionsTab() {
     const { data, addSnapshot, formatCurrency } = useData();
@@ -167,15 +168,10 @@ export function ProjectionsTab() {
                 <meta name="description" content="Forecast your future wealth based on recurring patterns and average spending habits." />
                 <link rel="canonical" href="https://my-precious-app.com/projections" />
             </Helmet>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                        <TrendingUp className="h-8 w-8 text-primary" />
-                        Financial Projections
-                    </h2>
-                    <p className="text-gray-500">Forecast your wealth based on recurring patterns & average spending</p>
-                </div>
-
+            <PageHeader
+                title="Financial Projections"
+                description="Forecast your wealth based on recurring patterns & average spending"
+            >
                 <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-2 px-2">
                         <Label htmlFor="yield" className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0">Monthly Yield (%)</Label>
@@ -192,7 +188,7 @@ export function ProjectionsTab() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </PageHeader>
 
             {/* Summary Cards */}
             {projectionData.length > 0 && (

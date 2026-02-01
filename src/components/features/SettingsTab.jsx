@@ -5,6 +5,7 @@ import { Card, Button, Label, Input, Modal, IconPicker } from '../ui';
 import { Save, Plus, Trash2, Edit2, Palette } from 'lucide-react';
 import { getIcon } from '../../lib/icons';
 import { cn } from '../../lib/utils';
+import { PageHeader } from '../layout/PageHeader';
 
 export function SettingsTab() {
     const { data, updateSettings, addCategory, updateCategory, deleteCategory } = useData();
@@ -70,7 +71,8 @@ export function SettingsTab() {
                 <meta name="description" content="Manage your application preferences, currencies, and transaction categories." />
                 <link rel="canonical" href="https://my-precious-app.com/settings" />
             </Helmet>
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Settings</h2>
+            
+            <PageHeader title="Settings" />
 
             {/* General Preferences */}
             <SettingsSection title="General Preferences" description="Manage your global application settings.">
