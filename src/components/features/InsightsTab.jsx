@@ -4,6 +4,7 @@ import { calculateMonthlyExpenses, analyzeTrends, identifyTopCategories, aggrega
 import { getFinancialsForMonth } from '../../lib/financialPeriodUtils';
 import { InsightCard } from '../insights/InsightCard';
 import { CategoryTrendChart } from '../insights/CategoryTrendChart';
+import { FinancialScore } from '../insights/FinancialScore';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { InsightsSettingsDialog } from '../insights/InsightsSettingsDialog';
 import { InsightsSettingsProvider, useInsightsSettings } from '../../contexts/InsightsSettingsContext';
@@ -210,6 +211,16 @@ function InsightsTabContent() {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Financial Score for Selected Month */}
+            <div className="mb-6">
+                <FinancialScore
+                    currentMonthData={currentMonthData}
+                    monthlyStats={monthlyStats}
+                    data={data}
+                    formatCurrency={formatCurrency}
+                />
             </div>
 
             {/* 1. Overview Cards for Selected Month */}
