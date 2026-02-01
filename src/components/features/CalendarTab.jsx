@@ -8,6 +8,7 @@ import { FinancialItemModal } from '../calendar/FinancialItemModal';
 import { RecurringTransactionsList } from './RecurringTransactionsList';
 import { ImportDialog } from '../calendar/ImportDialog';
 import { parsePicPayPDF } from '../../lib/picpayParser';
+import { parseItauPDF } from '../../lib/itauParser';
 import { parseTransactionsCSV, parseXpCSV } from '../../lib/csvParser';
 
 export function CalendarTab() {
@@ -47,6 +48,8 @@ export function CalendarTab() {
             result = parseXpCSV(text);
         } else if (source === 'picpay') {
             result = await parsePicPayPDF(file);
+        } else if (source === 'itau') {
+            result = await parseItauPDF(file);
         }
 
         if (result.transactions.length > 0) {
