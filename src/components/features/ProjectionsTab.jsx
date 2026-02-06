@@ -43,8 +43,8 @@ export function ProjectionsTab() {
             let totalVariableExpenses = 0;
             let monthsCounted = 0;
 
-            // Look back 3 months (from previous month)
-            for (let i = 1; i <= 3; i++) {
+            // Look back 6 months (from previous month)
+            for (let i = 1; i <= 6; i++) {
                 const targetMonthDate = addMonths(today, -i); // e.g., Nov, Oct, Sep
                 const startM = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth(), 1);
                 const endM = new Date(targetMonthDate.getFullYear(), targetMonthDate.getMonth() + 1, 0);
@@ -226,7 +226,7 @@ export function ProjectionsTab() {
                             {formatCurrency(projectionData[0].avgVariableExpenses)}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                            Based on last 3 months
+                            Based on last 6 months
                         </p>
                     </div>
                 </div>
@@ -253,7 +253,7 @@ export function ProjectionsTab() {
                                 <ul className="list-disc pl-5 space-y-1">
                                     <li>(+) Recurring Income (Avg: {formatCurrency(projectionData[1]?.monthlyIncome || 0)})</li>
                                     <li>(-) Recurring Expenses (Avg: {formatCurrency(projectionData[1]?.monthlyRecurringExpenses || 0)})</li>
-                                    <li>(-) <strong>Avg Variable Expenses ({formatCurrency(projectionData[0].avgVariableExpenses)})</strong> <span className="text-xs text-amber-600 bg-amber-50 px-1 rounded">(Calculated from last 3 months non-recurring spend)</span></li>
+                                    <li>(-) <strong>Avg Variable Expenses ({formatCurrency(projectionData[0].avgVariableExpenses)})</strong> <span className="text-xs text-amber-600 bg-amber-50 px-1 rounded">(Calculated from last 6 months non-recurring spend)</span></li>
                                 </ul>
                             </div>
                         </div>

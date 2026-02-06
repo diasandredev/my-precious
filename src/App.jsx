@@ -17,6 +17,15 @@ const CalendarTab = lazy(() => import('./components/features/CalendarTab').then(
 const SettingsTab = lazy(() => import('./components/features/SettingsTab').then(module => ({ default: module.SettingsTab })));
 const RecurringTransactionsList = lazy(() => import('./components/features/RecurringTransactionsList').then(module => ({ default: module.RecurringTransactionsList })));
 
+const PlaceholderPage = ({ title }) => (
+  <div className="flex h-full items-center justify-center p-8 text-center text-muted-foreground">
+    <div className="space-y-2">
+      <h3 className="text-lg font-medium text-foreground">Coming Soon</h3>
+      <p>The {title} feature is implementing.</p>
+    </div>
+  </div>
+);
+
 function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -33,15 +42,6 @@ function App() {
       stopSyncScheduler();
     };
   }, []);
-
-  const PlaceholderPage = ({ title }) => (
-    <div className="flex h-full items-center justify-center p-8 text-center text-muted-foreground">
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium text-foreground">Coming Soon</h3>
-        <p>The {title} feature is implementing.</p>
-      </div>
-    </div>
-  );
 
   if (authLoading) {
     return (

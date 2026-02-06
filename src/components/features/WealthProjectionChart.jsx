@@ -10,6 +10,48 @@ import {
 import { Card } from '../ui';
 import { cn } from '../../lib/utils';
 
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        // Calculate total from payload items to allow checking % contribution
+        const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
+
+        return (
+            <div className="bg-white p-4 border border-gray-100 shadow-xl rounded-xl z-50">
+                <p className="font-bold text-gray-900 mb-3 text-base">{label}</p>
+                <div className="space-y-2">
+                    {payload.map((entry, index) => (
+                        <div key={index} className="flex items-center justify-between gap-6 text-sm">
+                            <div className="flex items-center gap-2">
+                                <div
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{ backgroundColor: entry.color }}
+                                />
+                                <span className="text-gray-600 font-medium">{entry.name}</span>
+                            </div>
+                            <span className="font-mono font-bold text-gray-900">
+                                {new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(entry.value)}
+                            </span>
+                        </div>
+                    ))}
+                    <div className="border-t border-gray-100 my-2 pt-2 flex items-center justify-between gap-6">
+                        <span className="text-gray-900 font-bold">Total Projected</span>
+                        <span className="font-mono font-bold text-gray-900 text-base">
+                            {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                            }).format(total)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
 export function WealthProjectionChart({ data, className }) {
     if (!data || data.length === 0) {
         return (
@@ -19,47 +61,6 @@ export function WealthProjectionChart({ data, className }) {
         );
     }
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            // Calculate total from payload items to allow checking % contribution
-            const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
-
-            return (
-                <div className="bg-white p-4 border border-gray-100 shadow-xl rounded-xl z-50">
-                    <p className="font-bold text-gray-900 mb-3 text-base">{label}</p>
-                    <div className="space-y-2">
-                        {payload.map((entry, index) => (
-                            <div key={index} className="flex items-center justify-between gap-6 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <div
-                                        className="w-2.5 h-2.5 rounded-full"
-                                        style={{ backgroundColor: entry.color }}
-                                    />
-                                    <span className="text-gray-600 font-medium">{entry.name}</span>
-                                </div>
-                                <span className="font-mono font-bold text-gray-900">
-                                    {new Intl.NumberFormat('pt-BR', {
-                                        style: 'currency',
-                                        currency: 'BRL'
-                                    }).format(entry.value)}
-                                </span>
-                            </div>
-                        ))}
-                        <div className="border-t border-gray-100 my-2 pt-2 flex items-center justify-between gap-6">
-                            <span className="text-gray-900 font-bold">Total Projected</span>
-                            <span className="font-mono font-bold text-gray-900 text-base">
-                                {new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL'
-                                }).format(total)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     return (
         <Card className={cn("p-6 bg-white border-gray-100 shadow-sm", className)}>
