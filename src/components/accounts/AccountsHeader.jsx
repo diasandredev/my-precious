@@ -15,37 +15,37 @@ export function AccountsHeader({
 }) {
     return (
         <PageHeader
-            title="Accounts & Net Worth"
-            description="Manage your asset sources and track their value."
+            title="Contas & Patrimônio"
+            description="Gerencie suas contas bancárias, corretoras e carteiras crypto."
         >
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-wrap gap-2.5 items-center">
                 <SyncStatus />
                 {!isUpdateMode ? (
                     <>
-                        <Button onClick={handleUpdateBalances} variant="outline" className="border-gray-200">
-                            <Edit2 size={16} className="mr-2" />
-                            Update Balances
+                        <Button onClick={handleUpdateBalances} variant="outline" className="border-slate-200 bg-white hover:bg-slate-50 rounded-xl text-slate-700 text-xs font-semibold shadow-xs">
+                            <Edit2 size={15} className="mr-1.5 text-slate-500" />
+                            Atualizar Saldos
                         </Button>
-                        <Button onClick={() => handleOpenModal()} className="shadow-lg shadow-black/5">
-                            <Plus size={18} className="mr-2" />
-                            Add Account
+                        <Button onClick={() => handleOpenModal()} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-sm">
+                            <Plus size={16} className="mr-1.5" />
+                            Nova Conta
                         </Button>
                     </>
                 ) : (
                     <>
-                        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-md border border-gray-200 mr-2">
-                            <Calendar size={16} className="text-gray-400" />
+                        <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                            <Calendar size={15} className="text-slate-400" />
                             <input
                                 type="date"
                                 value={selectedDate}
                                 onChange={e => setSelectedDate(e.target.value)}
-                                className="text-sm border-none focus:outline-none"
+                                className="text-xs font-semibold text-slate-700 border-none focus:outline-none bg-transparent"
                             />
                         </div>
-                        <Button onClick={() => setIsUpdateMode(false)} variant="ghost">Cancel</Button>
-                        <Button onClick={saveBalances} disabled={isLoadingRates} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 ring-0 focus:ring-0">
-                            <Save size={18} className="mr-2" />
-                            {isLoadingRates ? 'Saving...' : 'Save Snapshot'}
+                        <Button onClick={() => setIsUpdateMode(false)} variant="ghost" className="rounded-xl text-xs">Cancelar</Button>
+                        <Button onClick={saveBalances} disabled={isLoadingRates} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm">
+                            <Save size={16} className="mr-1.5" />
+                            {isLoadingRates ? 'Salvando...' : 'Salvar Snapshot'}
                         </Button>
                     </>
                 )}

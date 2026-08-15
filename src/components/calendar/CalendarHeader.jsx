@@ -8,64 +8,63 @@ export function CalendarHeader({ currentMonth, setCurrentMonth, handleFileUpload
     return (
         <PageHeader
             title={format(currentMonth, 'MMMM yyyy')}
-            className="mb-8"
+            description="Acompanhamento mensal de lançamentos, receitas e compromissos futuros."
+            className="mb-6"
         >
-            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                {/* Sync Status */}
-                <SyncStatus />
+            {/* Sync Status */}
+            <SyncStatus />
 
-                {/* Date Navigation */}
-                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                    <button
-                        onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                        className="p-1 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-500 hover:text-gray-900"
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <button
-                        onClick={() => setCurrentMonth(new Date())}
-                        className="text-xs font-medium px-2 py-1 text-gray-500 hover:text-gray-900"
-                    >
-                        Today
-                    </button>
-                    <button
-                        onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                        className="p-1 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-500 hover:text-gray-900"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
-                </div>
-
-                {/* Import Button */}
-                <Button variant="outline" className="gap-2" onClick={handleFileUpload}>
-                    <Upload size={16} />
-                    Import
-                </Button>
-
-                {/* View Toggles */}
-                <div className="flex gap-1 p-1 bg-gray-100 rounded-lg h-9">
-                    <button
-                        onClick={() => setView('calendar')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${view === 'calendar' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}
-                    >
-                        Calendar
-                    </button>
-                    <button
-                        onClick={() => setView('rules')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${view === 'rules' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"}`}
-                    >
-                        Rules
-                    </button>
-                </div>
-
-                <div className="h-6 w-px bg-gray-200 mx-2" />
-
-                {/* Main Action Button */}
-                <Button onClick={onAdd} className="bg-black text-white hover:bg-gray-800 gap-2">
-                    <Plus size={16} />
-                    {view === 'rules' ? 'New Rule' : 'Add Item'}
-                </Button>
+            {/* Date Navigation */}
+            <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-0.5 shadow-xs h-9">
+                <button
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer"
+                    title="Mês anterior"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+                <button
+                    onClick={() => setCurrentMonth(new Date())}
+                    className="text-xs font-semibold px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                >
+                    Hoje
+                </button>
+                <button
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-all text-slate-500 hover:text-slate-900 cursor-pointer"
+                    title="Próximo mês"
+                >
+                    <ChevronRight size={16} />
+                </button>
             </div>
+
+            {/* Import Button */}
+            <Button variant="outline" className="h-9 gap-1.5 bg-white border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 shadow-xs px-3" onClick={handleFileUpload}>
+                <Upload size={14} />
+                <span>Importar Extrato</span>
+            </Button>
+
+            {/* View Toggles */}
+            <div className="flex gap-0.5 p-0.5 bg-slate-100 rounded-xl h-9 border border-slate-200/60">
+                <button
+                    onClick={() => setView('calendar')}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${view === 'calendar' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+                >
+                    Calendário
+                </button>
+                <button
+                    onClick={() => setView('rules')}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${view === 'rules' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+                >
+                    Regras Fixas
+                </button>
+            </div>
+
+            {/* Main Action Button */}
+            <Button onClick={onAdd} className="h-9 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-semibold shadow-sm gap-1.5 px-3.5 whitespace-nowrap">
+                <Plus size={15} />
+                <span>{view === 'rules' ? 'Nova Regra' : 'Novo Lançamento'}</span>
+            </Button>
         </PageHeader>
     );
 }

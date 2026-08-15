@@ -2,44 +2,51 @@ import { Button } from '../ui/Button';
 import { Input, Label } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { cn } from '../../lib/utils';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export function FinancialItemModal({ isOpen, onClose, itemType, setItemType, formData, setFormData, handleSubmit, isConfirming, categories, editingItem }) {
+    const isEditing = !!editingItem;
+    const modalTitle = isConfirming
+        ? "Confirmar Lançamento"
+        : (isEditing
+            ? (itemType === 'one-time' ? "Editar Lançamento" : "Editar Regra Recorrente")
+            : (itemType === 'one-time' ? "Novo Lançamento" : "Nova Regra Recorrente"));
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={isConfirming ? "Confirm Expense/Income" : (editingItem ? (itemType === 'one-time' ? "Edit Transaction" : "Edit Recurring Transaction") : (itemType === 'one-time' ? "Add Transaction" : "New Recurring Transaction"))}>
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {!isConfirming && (
-                    <div className="flex items-center gap-4 p-1 bg-gray-100 rounded-lg w-fit">
+        <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
+            <form onSubmit={handleSubmit} className="space-y-5">
+                {!isConfirming && !isEditing && (
+                    <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-fit border border-slate-200/60">
                         <button
                             type="button"
                             onClick={() => setItemType('one-time')}
                             className={cn(
-                                "px-4 py-2 text-sm font-medium rounded-md transition-all",
-                                itemType === 'one-time' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                                "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer",
+                                itemType === 'one-time' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
                             )}
                         >
-                            One-time
+                            Único
                         </button>
                         <button
                             type="button"
                             onClick={() => setItemType('recurring')}
                             className={cn(
-                                "px-4 py-2 text-sm font-medium rounded-md transition-all",
-                                itemType === 'recurring' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                                "px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer",
+                                itemType === 'recurring' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
                             )}
                         >
-                            Recurring
+                            Recorrente
                         </button>
                     </div>
                 )}
 
                 {isConfirming && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-                        <AlertCircle className="text-yellow-600 shrink-0 mt-0.5" size={20} />
+                    <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3.5 flex items-start gap-2.5 text-amber-900">
+                        <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={18} />
                         <div>
-                            <h4 className="text-sm font-bold text-yellow-800">Confirm Amount</h4>
-                            <p className="text-xs text-yellow-700 mt-1">
-                                This is a variable recurring item. Please confirm the exact amount for this month.
+                            <h4 className="text-xs font-bold text-amber-900">Confirmar Lançamento</h4>
+                            <p className="text-[11px] text-amber-700 mt-0.5">
+                                Ajuste os valores ou detalhes conforme necessário antes de salvar.
                             </p>
                         </div>
                     </div>
@@ -47,173 +54,143 @@ export function FinancialItemModal({ isOpen, onClose, itemType, setItemType, for
 
                 <div className="space-y-4">
                     <div>
-                        <Label>Title</Label>
+                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Título</Label>
                         <Input
                             value={formData.title}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="e.g. Salary, Rent, Grocery"
+                            placeholder="ex: Salário, Aluguel, Mercado"
+                            className="rounded-xl border-slate-200 text-xs"
                             required
-                            disabled={isConfirming} // Read-only if confirming a child
                         />
                     </div>
 
-                    {!isConfirming && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label>Amount</Label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        className="pl-8"
-                                        value={formData.amount}
-                                        onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                        placeholder="0.00"
-                                        required
-                                        disabled={isConfirming && !formData.isVariable}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <Label>Type</Label>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        disabled={isConfirming}
-                                        onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
-                                        className={cn(
-                                            "flex-1 py-2 text-sm font-medium rounded-lg border transition-all",
-                                            formData.type === 'EXPENSE'
-                                                ? "bg-red-50 border-red-200 text-red-700"
-                                                : "border-gray-200 text-gray-500 hover:border-gray-300",
-                                            isConfirming && "opacity-50 cursor-not-allowed"
-                                        )}
-                                    >
-                                        Expense
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={isConfirming}
-                                        onClick={() => setFormData({ ...formData, type: 'INCOME' })}
-                                        className={cn(
-                                            "flex-1 py-2 text-sm font-medium rounded-lg border transition-all",
-                                            formData.type === 'INCOME'
-                                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                                : "border-gray-200 text-gray-500 hover:border-gray-300",
-                                            isConfirming && "opacity-50 cursor-not-allowed"
-                                        )}
-                                    >
-                                        Income
-                                    </button>
-                                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor (R$)</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2.5 text-slate-400 text-xs font-mono font-bold">R$</span>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="pl-9 rounded-xl border-slate-200 text-xs font-mono font-semibold"
+                                    value={formData.amount}
+                                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                                    placeholder="0,00"
+                                    required
+                                />
                             </div>
                         </div>
-
-                    )}
-
-                    {!isConfirming && itemType !== 'recurring' && (
                         <div>
-                            <Label>Status</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Tipo</Label>
+                            <div className="flex gap-1.5 h-10">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
+                                    className={cn(
+                                        "flex-1 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer",
+                                        formData.type === 'EXPENSE'
+                                            ? "bg-rose-50 border-rose-200 text-rose-700 shadow-xs"
+                                            : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                                    )}
+                                >
+                                    Despesa
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, type: 'INCOME' })}
+                                    className={cn(
+                                        "flex-1 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer",
+                                        formData.type === 'INCOME'
+                                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-xs"
+                                            : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                                    )}
+                                >
+                                    Receita
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {itemType !== 'recurring' && (
+                        <div>
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Status</Label>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setFormData({ ...formData, status: 'CONFIRMED' })}
                                     className={cn(
-                                        "flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all",
+                                        "flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer",
                                         formData.status === 'CONFIRMED'
-                                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                                            ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-xs"
+                                            : "border-slate-200 text-slate-500 hover:bg-slate-50"
                                     )}
                                 >
-                                    Confirmed
+                                    Confirmado
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setFormData({ ...formData, status: 'PROJECTED' })}
                                     className={cn(
-                                        "flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all",
+                                        "flex-1 py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer",
                                         formData.status === 'PROJECTED'
-                                            ? "bg-amber-50 border-amber-200 text-amber-700"
-                                            : "border-gray-200 text-gray-500 hover:border-gray-300"
+                                            ? "bg-amber-50 border-amber-200 text-amber-700 shadow-xs"
+                                            : "border-slate-200 text-slate-500 hover:bg-slate-50"
                                     )}
                                 >
-                                    Projected
+                                    Projetado
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {isConfirming && (
-                        <div>
-                            <Label>Amount</Label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    className="pl-8"
-                                    value={formData.amount}
-                                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                    placeholder="0.00"
-                                    required
-                                    disabled={!formData.isVariable}
-                                />
-                            </div>
-                        </div>
-                    )}
-
                     {/* Category Selection */}
-                    {!isConfirming && (
-                        <div>
-                            <Label>Category</Label>
-                            <div className="grid grid-cols-3 gap-2 mt-2">
-                                {(categories || [])
-                                    .filter(c => c.type === 'BOTH' || c.type === formData.type)
-                                    .map(cat => (
-                                        <button
-                                            key={cat.id}
-                                            type="button"
-                                            disabled={isConfirming}
-                                            onClick={() => setFormData({ ...formData, categoryId: cat.id })}
-                                            className={cn(
-                                                "flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all text-left",
-                                                formData.categoryId === cat.id
-                                                    ? "border-indigo-600 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600"
-                                                    : "border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:bg-indigo-50/50",
-                                                isConfirming && "opacity-50 cursor-not-allowed"
-                                            )}
-                                        >
-                                            <div
-                                                className="w-2.5 h-2.5 rounded-full shrink-0"
-                                                style={{ backgroundColor: cat.color }}
-                                            />
-                                            <span className="truncate">{cat.name}</span>
-                                        </button>
-                                    ))
-                                }
-                            </div>
+                    <div>
+                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Categoria</Label>
+                        <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto custom-scrollbar p-1 border border-slate-200/80 rounded-xl bg-slate-50/40">
+                            {(categories || [])
+                                .filter(c => c.type === 'BOTH' || c.type === formData.type)
+                                .map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, categoryId: cat.id })}
+                                        className={cn(
+                                            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all text-left cursor-pointer",
+                                            formData.categoryId === cat.id
+                                                ? "border-slate-900 bg-slate-900 text-white shadow-xs"
+                                                : "border-slate-200/80 bg-white text-slate-700 hover:border-slate-300"
+                                        )}
+                                    >
+                                        <div
+                                            className="w-2 h-2 rounded-full shrink-0"
+                                            style={{ backgroundColor: cat.color }}
+                                        />
+                                        <span className="truncate">{cat.name}</span>
+                                    </button>
+                                ))
+                            }
                         </div>
-                    )}
+                    </div>
 
                     {itemType === 'one-time' ? (
                         <div>
-                            <Label>Date</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Data</Label>
                             <Input
                                 type="date"
                                 value={formData.date}
                                 onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                className="rounded-xl border-slate-200 text-xs"
                                 required
                             />
                         </div>
                     ) : (
-                        <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                            <h4 className="text-sm font-bold text-gray-900 border-b border-gray-200 pb-2 mb-2">Recurrence Settings</h4>
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                            <h4 className="text-xs font-bold text-slate-900 border-b border-slate-200 pb-1.5 mb-2">Configurações de Recorrência</h4>
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label>Frequency</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Frequência</Label>
                                     <select
-                                        className="w-full rounded-lg border border-gray-200 p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                        className="w-full rounded-xl border border-slate-200 p-2 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition-all cursor-pointer"
                                         value={formData.frequency}
                                         onChange={e => setFormData({ ...formData, frequency: e.target.value })}
                                     >
@@ -223,48 +200,52 @@ export function FinancialItemModal({ isOpen, onClose, itemType, setItemType, for
                                     </select>
                                 </div>
                                 <div>
-                                    <Label>Start Date</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Data de Início</Label>
                                     <Input
                                         type="date"
                                         value={formData.startDate}
                                         onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                        className="rounded-xl border-slate-200 text-xs"
                                         required
                                     />
                                 </div>
-                                <div>
-                                    <Label>End Date (Optional)</Label>
+                                <div className="col-span-2">
+                                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Data Fim (Opcional)</Label>
                                     <Input
                                         type="date"
                                         value={formData.endDate}
                                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                                        placeholder="Optional"
+                                        className="rounded-xl border-slate-200 text-xs"
+                                        placeholder="Opcional"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 pt-1">
                                 <input
                                     type="checkbox"
                                     id="isVariable"
                                     checked={formData.isVariable}
                                     onChange={e => setFormData({ ...formData, isVariable: e.target.checked })}
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                                 />
-                                <Label htmlFor="isVariable" className="mb-0">Variable Price? (Confirm amount monthly)</Label>
+                                <Label htmlFor="isVariable" className="text-xs text-slate-700 font-medium mb-0 cursor-pointer">
+                                    Valor Variável? (Confirmar valor todo mês)
+                                </Label>
                             </div>
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button type="button" variant="ghost" onClick={onClose}>
-                            Cancel
+                    <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+                        <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl text-xs">
+                            Cancelar
                         </Button>
-                        <Button type="submit">
-                            {isConfirming ? 'Confirm & Save' : (editingItem ? 'Save Changes' : (itemType === 'one-time' ? 'Add Transaction' : 'Create Recurring Transaction'))}
+                        <Button type="submit" className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-semibold shadow-sm px-4">
+                            {isConfirming ? 'Confirmar & Salvar' : (isEditing ? 'Salvar Alterações' : (itemType === 'one-time' ? 'Adicionar Lançamento' : 'Criar Regra Recorrente'))}
                         </Button>
                     </div>
                 </div>
             </form>
-        </Modal >
+        </Modal>
     );
 }

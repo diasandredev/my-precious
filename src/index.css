@@ -4,28 +4,30 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    /* White */
-    --foreground: 222.2 84% 4.9%;
-    /* Dark Text */
+    --background: 210 40% 98%;
+    /* Slate 50 tint */
+    --foreground: 222.2 47.4% 11.2%;
+    /* Slate 900 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222.2 47.4% 11.2%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222.2 47.4% 11.2%;
 
-    --primary: 0 0% 0%;
-    /* Black */
-    --primary-foreground: 0 0% 100%;
+    --primary: 222.2 47.4% 11.2%;
+    /* Slate 900 */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 214.3 31.8% 95%;
+    /* Slate 100 */
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 210 40% 96.1%;
+    --muted: 214.3 31.8% 95%;
     --muted-foreground: 215.4 16.3% 46.9%;
+    /* Slate 500 */
 
-    --accent: 210 40% 96.1%;
+    --accent: 214.3 31.8% 95%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -33,9 +35,9 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 0 0% 0%;
+    --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 }
 
@@ -45,14 +47,39 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .font-mono, [data-tabular-nums="true"] {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom Scrollbar */
+/* Glassmorphism & Surface Utilities */
+.glass-panel {
+  @apply bg-white/85 backdrop-blur-md border border-slate-200/70 shadow-sm;
+}
+
+.glass-card {
+  @apply bg-white/90 backdrop-blur-sm border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200;
+}
+
+/* Auto-Hiding Scrollbar (Invisible by default, reveals on hover/scroll) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease-in-out;
+}
+
+*:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -60,9 +87,48 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-secondary rounded-full;
+  background: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease-in-out;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-secondary/80;
+  background: rgba(100, 116, 139, 0.7) !important;
+}
+
+/* Custom Scrollbar utility class */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.25s ease-in-out;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.75);
 }

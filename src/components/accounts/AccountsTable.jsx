@@ -103,44 +103,44 @@ export function AccountsTable({
     };
 
     return (
-        <Card className="lg:col-span-2 bg-white border-gray-100 shadow-sm overflow-hidden h-fit">
-            <div className="p-4 border-b border-gray-100 bg-white flex flex-col sm:flex-row gap-4">
+        <Card className="lg:col-span-2 bg-white border-slate-200/80 shadow-xs hover:shadow-md transition-all rounded-2xl overflow-hidden h-fit">
+            <div className="p-4 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <Input
-                        placeholder="Search accounts..."
+                        placeholder="Buscar por nome da conta..."
                         value={filterName}
                         onChange={(e) => setFilterName(e.target.value)}
-                        className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all"
+                        className="pl-9.5 bg-white border-slate-200 focus:border-slate-900 rounded-xl h-10 text-xs transition-all"
                     />
                 </div>
                 <div className="flex gap-2">
-                    <div className="relative min-w-[140px]">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <div className="relative min-w-[130px]">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="w-full h-10 pl-9 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                            className="w-full h-10 pl-8 pr-7 text-xs font-medium bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
                         >
-                            <option value="all">All Types</option>
+                            <option value="all">Todos os Tipos</option>
                             {uniqueTypes.filter(t => t !== 'all').map(type => (
                                 <option key={type} value={type}>{type}</option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
                     </div>
-                    <div className="relative min-w-[120px]">
+                    <div className="relative min-w-[110px]">
                         <select
                             value={filterCurrency}
                             onChange={(e) => setFilterCurrency(e.target.value)}
-                            className="w-full h-10 pl-3 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                            className="w-full h-10 pl-3 pr-7 text-xs font-medium bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
                         >
-                            <option value="all">All Currencies</option>
+                            <option value="all">Moedas</option>
                             {uniqueCurrencies.filter(c => c !== 'all').map(currency => (
                                 <option key={currency} value={currency}>{currency}</option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
                     </div>
 
                     {(filterName || filterType !== 'all' || filterCurrency !== 'all') && (
@@ -152,10 +152,10 @@ export function AccountsTable({
                                 setFilterType('all');
                                 setFilterCurrency('all');
                             }}
-                            className="h-10 w-10 text-gray-400 hover:text-gray-900 hover:bg-gray-100"
-                            title="Clear all filters"
+                            className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                            title="Limpar filtros"
                         >
-                            <X size={18} />
+                            <X size={16} />
                         </Button>
                     )}
                 </div>

@@ -56,32 +56,34 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50 font-mono text-gray-900">
+    <div className="flex min-h-screen bg-slate-50/60 font-sans text-slate-900 antialiased selection:bg-slate-900 selection:text-white">
       <Sidebar />
 
-      <main className="flex-1 overflow-hidden h-screen relative">
-        <div className={`h-full w-full overflow-auto ${location.pathname === '/' ? '' : 'p-8'}`}>
-          <Suspense fallback={
-            <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            </div>
-          }>
-            <Routes>
-              <Route path="/" element={<DashboardTab />} />
-              <Route path="/accounts" element={<AccountsTab />} />
-              <Route path="/projections" element={<ProjectionsTab />} />
-              <Route path="/insights" element={<InsightsTab />} />
-              <Route path="/calendar" element={<CalendarTab />} />
-              <Route path="/settings" element={<SettingsTab />} />
-              <Route path="/recurring" element={<RecurringTransactionsList />} />
-              
-              {/* Placeholders */}
-              <Route path="/notifications" element={<PlaceholderPage title="Notifications" />} />
-              
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
+      <main className="flex-1 overflow-hidden h-screen relative bg-slate-50/60">
+        <div className={`h-full w-full ${location.pathname === '/' ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
+          <div className={location.pathname === '/' ? 'h-full w-full' : 'p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto'}>
+            <Suspense fallback={
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            }>
+              <Routes>
+                <Route path="/" element={<DashboardTab />} />
+                <Route path="/accounts" element={<AccountsTab />} />
+                <Route path="/projections" element={<ProjectionsTab />} />
+                <Route path="/insights" element={<InsightsTab />} />
+                <Route path="/calendar" element={<CalendarTab />} />
+                <Route path="/settings" element={<SettingsTab />} />
+                <Route path="/recurring" element={<RecurringTransactionsList />} />
+                
+                {/* Placeholders */}
+                <Route path="/notifications" element={<PlaceholderPage title="Notifications" />} />
+                
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </div>
         </div>
       </main>
     </div>

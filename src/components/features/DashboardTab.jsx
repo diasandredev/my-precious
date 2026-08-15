@@ -33,20 +33,21 @@ export function DashboardTab() {
     } = useDashboardData();
 
     return (
-        <div className="space-y-4">
+        <div className="flex h-full w-full overflow-hidden">
             <Helmet>
                 <title>Dashboard - Precious</title>
                 <meta name="description" content="Overview of your financial health, including net worth, recent transactions, and asset allocation." />
                 <link rel="canonical" href="https://my-precious-app.com/" />
             </Helmet>
 
-            {/* Top Cards: Metrics */}
-            {/* The previous error was due to malformed grid structure after removing the header.
-                We need to restore the main grid wrapper for layout. */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 h-full">
-                {/* Left Column: Charts & Data (Takes 9/12) */}
-                <div className="lg:col-span-9 flex flex-col">
-                    
+            {/* Left Column: Scrollable Dashboard Content */}
+            <div className="flex-1 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 custom-scrollbar">
+                <PageHeader
+                    title="Painel Geral"
+                    description="Visão consolidada do seu patrimônio, fluxo de caixa e alocação de ativos."
+                />
+
+                <div className="space-y-4 max-w-7xl">
                     <DashboardCards
                         currentMonthMetrics={currentMonthMetrics}
                         netWorthStats={netWorthStats}
@@ -58,7 +59,7 @@ export function DashboardTab() {
                         assetsByCurrency={assetsByCurrency}
                     />
 
-                    {/* Asset Evolution & Assets (Inside component they are stacked) - Full Width */}
+                    {/* Asset Evolution & Assets */}
                     <DashboardAssetCharts
                         evolutionData={evolutionData}
                         allocationData={allocationData}
@@ -67,7 +68,7 @@ export function DashboardTab() {
                         formatCurrency={formatCurrency}
                     />
 
-                    {/* Crypto Portfolio Main Chart - Full Width */}
+                    {/* Crypto Portfolio Main Chart */}
                     <CryptoPortfolio
                         cryptoStats={cryptoStats}
                         formatCurrency={formatCurrency}
@@ -75,7 +76,7 @@ export function DashboardTab() {
                         data={data}
                     />
 
-                    {/* Main Chart (Income vs Expense) - Full Width */}
+                    {/* Main Chart (Income vs Expense) */}
                     <DashboardFinancialOverview
                         chartData={chartData}
                         categories={data.categories}
@@ -83,7 +84,7 @@ export function DashboardTab() {
                     />
 
                     {/* Split Row: Expenses Breakdown & Crypto Allocation */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <DashboardExpensesBreakdown
                             pieData={pieData}
                             breakdownFilter={breakdownFilter}
@@ -105,20 +106,28 @@ export function DashboardTab() {
                         categories={data.categories}
                         formatCurrency={formatCurrency}
                     />
-                </div>
 
-                {/* Right Column: Transactions (Takes 3/12) - Sticky Sidebar */}
-                <div className="lg:col-span-3 relative">
-                    <div className="sticky top-0 h-screen">
+                    {/* Mobile fallback for smaller viewports (< lg) */}
+                    <div className="lg:hidden pt-4">
                         <DashboardRecentTransactions
                             transactions={data.transactions}
                             categories={data.categories}
                             formatCurrency={formatCurrency}
-                            className="h-full"
+                            className="rounded-2xl border border-slate-200/80 shadow-xs"
                         />
                     </div>
                 </div>
             </div>
+
+            {/* Right Column: Fixed Lateral Panel (No padding on top, unboxed, flush to screen top/bottom) */}
+            <aside className="hidden lg:flex w-80 xl:w-96 shrink-0 h-full border-l border-slate-200/80 bg-white/95 backdrop-blur-md flex-col z-10">
+                <DashboardRecentTransactions
+                    transactions={data.transactions}
+                    categories={data.categories}
+                    formatCurrency={formatCurrency}
+                    className="h-full"
+                />
+            </aside>
         </div>
     );
 }

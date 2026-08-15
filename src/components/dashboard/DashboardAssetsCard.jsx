@@ -46,16 +46,16 @@ export function DashboardAssetsCard({ allocationData, totalValue, formatCurrency
     };
 
     return (
-        <Card className="p-6 bg-white h-full max-h-[600px] flex flex-col rounded-none shadow-none">
+        <Card className="p-6 bg-white h-full max-h-[600px] flex flex-col rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
             <div className="flex items-baseline gap-2 mb-4 shrink-0">
-                <h3 className="text-xl font-bold text-gray-900">Assets</h3>
-                <span className="text-lg text-gray-500 font-medium">
+                <h3 className="text-lg font-bold text-slate-900">Alocação de Ativos</h3>
+                <span className="text-base text-slate-500 font-mono font-semibold">
                     · {formatCurrency(totalValue)}
                 </span>
             </div>
 
             {/* Segmented Progress Bar - Uses Grouped Data */}
-            <div className="flex h-2 w-full rounded-full overflow-hidden mb-4 shrink-0">
+            <div className="flex h-2.5 w-full rounded-full overflow-hidden mb-4 shrink-0 bg-slate-100 p-0.5 gap-0.5 shadow-inner">
                 {groupedData.map((group, index) => (
                     <div
                         key={group.id}
@@ -63,7 +63,7 @@ export function DashboardAssetsCard({ allocationData, totalValue, formatCurrency
                             width: `${group.percent}%`,
                             backgroundColor: getAccountColor(group.primaryItem, index)
                         }}
-                        className="h-full"
+                        className="h-full rounded-full transition-all"
                         title={`${group.simpleName}: ${group.percent.toFixed(1)}%`}
                     />
                 ))}

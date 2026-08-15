@@ -103,78 +103,81 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
     };
 
     return (
-        <Card className="p-0 overflow-hidden bg-white border-gray-100 shadow-sm">
-            <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-gray-900">Month Summary</h3>
-                    <div className="flex gap-4">
-                        <div className="text-right">
-                            <p className="text-xs text-gray-400 uppercase">Income</p>
-                            <p className="font-bold text-emerald-600">+{monthlyFinancials.income.toLocaleString()}</p>
+        <Card className="p-0 overflow-hidden bg-white border-slate-200/80 shadow-xs hover:shadow-md transition-all rounded-2xl">
+            <div className="p-6 border-b border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 className="text-base font-bold text-slate-900">Resumo do Mês</h3>
+                        <p className="text-xs text-slate-400">Totalização das transações deste período</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2.5">
+                        <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/60 text-right">
+                            <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Receitas</p>
+                            <p className="text-xs font-extrabold font-mono text-emerald-700">+{monthlyFinancials.income.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                         </div>
-                        <div className="text-right">
-                            <p className="text-xs text-gray-400 uppercase">Expenses</p>
-                            <p className="font-bold text-red-600">-{monthlyFinancials.expense.toLocaleString()}</p>
+                        <div className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200/60 text-right">
+                            <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Despesas</p>
+                            <p className="text-xs font-extrabold font-mono text-rose-700">-{monthlyFinancials.expense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                         </div>
-                        <div className="text-right pl-4 border-l">
-                            <p className="text-xs text-gray-400 uppercase">Balance</p>
-                            <p className={cn("font-bold", monthlyFinancials.balance >= 0 ? "text-emerald-600" : "text-red-600")}>
-                                {monthlyFinancials.balance.toLocaleString()}
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-right shadow-xs">
+                            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Saldo do Mês</p>
+                            <p className="text-xs font-extrabold font-mono text-white">
+                                {monthlyFinancials.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </p>
                         </div>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                         <Input
-                            placeholder="Search transactions..."
+                            placeholder="Buscar lançamentos..."
                             value={filterName}
                             onChange={(e) => setFilterName(e.target.value)}
-                            className="pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-all"
+                            className="!pl-10 bg-slate-50/50 border-slate-200 focus:bg-white rounded-xl h-10 text-xs transition-all"
                         />
                     </div>
-                    <div className="flex gap-2">
-                        <div className="relative min-w-[120px]">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <div className="flex flex-wrap gap-2">
+                        <div className="relative min-w-[110px]">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
                             <select
                                 value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
-                                className="w-full h-10 pl-9 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                                className="w-full h-10 pl-8 pr-7 text-xs font-medium bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 appearance-none cursor-pointer hover:bg-white transition-colors"
                             >
-                                <option value="all">All Types</option>
-                                <option value="INCOME">Income</option>
-                                <option value="EXPENSE">Expense</option>
+                                <option value="all">Tipo</option>
+                                <option value="INCOME">Receitas</option>
+                                <option value="EXPENSE">Despesas</option>
                             </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
                         </div>
-                        <div className="relative min-w-[140px]">
+                        <div className="relative min-w-[130px]">
                             <select
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                className="w-full h-10 pl-3 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                                className="w-full h-10 pl-3 pr-7 text-xs font-medium bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 appearance-none cursor-pointer hover:bg-white transition-colors"
                             >
-                                <option value="all">All Categories</option>
+                                <option value="all">Categorias</option>
                                 {uniqueCategories.map(cat => (
                                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                                 ))}
                             </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
                         </div>
-                        <div className="relative min-w-[140px]">
+                        <div className="relative min-w-[120px]">
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="w-full h-10 pl-3 pr-8 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-black/5 appearance-none cursor-pointer hover:bg-white transition-colors"
+                                className="w-full h-10 pl-3 pr-7 text-xs font-medium bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 appearance-none cursor-pointer hover:bg-white transition-colors"
                             >
-                                <option value="all">All Status</option>
-                                <option value="CONFIRMED">Confirmed</option>
-                                <option value="PENDING">Pending</option>
-                                <option value="PROJECTED">Projected</option>
+                                <option value="all">Status</option>
+                                <option value="CONFIRMED">Confirmado</option>
+                                <option value="PENDING">Pendente</option>
+                                <option value="PROJECTED">Projetado</option>
                             </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
                         </div>
 
                         {(filterName || filterType !== 'all' || filterCategory !== 'all' || filterStatus !== 'all') && (
@@ -187,10 +190,10 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                                     setFilterCategory('all');
                                     setFilterStatus('all');
                                 }}
-                                className="h-10 w-10 text-gray-400 hover:text-gray-900 hover:bg-gray-100"
-                                title="Clear all filters"
+                                className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                                title="Limpar filtros"
                             >
-                                <X size={18} />
+                                <X size={16} />
                             </Button>
                         )}
                     </div>
@@ -200,46 +203,46 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50/50">
+                        <tr className="border-b border-slate-100 bg-slate-50/60">
                             <th
-                                className="text-left py-3 px-6 font-semibold text-gray-400 w-[120px] cursor-pointer hover:text-black group select-none transition-colors"
+                                className="text-left py-3 px-6 font-semibold text-slate-400 w-[110px] cursor-pointer hover:text-slate-900 group select-none transition-colors text-xs"
                                 onClick={() => handleSort('date')}
                             >
                                 <div className="flex items-center">
-                                    Date
+                                    Data
                                     {getSortIcon('date')}
                                 </div>
                             </th>
                             <th
-                                className="text-left py-3 font-semibold text-gray-400 cursor-pointer hover:text-black group select-none transition-colors"
+                                className="text-left py-3 px-4 font-semibold text-slate-400 cursor-pointer hover:text-slate-900 group select-none transition-colors text-xs"
                                 onClick={() => handleSort('description')}
                             >
                                 <div className="flex items-center">
-                                    Description
+                                    Descrição
                                     {getSortIcon('description')}
                                 </div>
                             </th>
                             <th
-                                className="text-center py-3 font-semibold text-gray-400 w-[150px] cursor-pointer hover:text-black group select-none transition-colors"
+                                className="text-center py-3 px-4 font-semibold text-slate-400 w-[140px] cursor-pointer hover:text-slate-900 group select-none transition-colors text-xs"
                                 onClick={() => handleSort('category')}
                             >
                                 <div className="flex items-center justify-center">
-                                    Category
+                                    Categoria
                                     {getSortIcon('category')}
                                 </div>
                             </th>
-                            <th className="text-center py-3 font-semibold text-gray-400 w-[100px]">Type</th>
+                            <th className="text-center py-3 px-4 font-semibold text-slate-400 w-[100px] text-xs">Tipo</th>
                             <th
-                                className="text-right py-3 font-semibold text-gray-400 w-[120px] cursor-pointer hover:text-black group select-none transition-colors"
+                                className="text-right py-3 px-5 font-semibold text-slate-400 w-[160px] cursor-pointer hover:text-slate-900 group select-none transition-colors text-xs"
                                 onClick={() => handleSort('amount')}
                             >
                                 <div className="flex items-center justify-end">
-                                    Amount
+                                    Valor
                                     {getSortIcon('amount')}
                                 </div>
                             </th>
                             <th
-                                className="text-center py-3 font-semibold text-gray-400 w-[80px] cursor-pointer hover:text-black group select-none transition-colors"
+                                className="text-center py-3 px-5 font-semibold text-slate-400 w-[140px] cursor-pointer hover:text-slate-900 group select-none transition-colors text-xs"
                                 onClick={() => handleSort('status')}
                             >
                                 <div className="flex items-center justify-center">
@@ -247,13 +250,13 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                                     {getSortIcon('status')}
                                 </div>
                             </th>
-                            <th className="text-center py-3 font-semibold text-gray-400 w-[80px]">Actions</th>
+                            <th className="text-center py-3 px-4 font-semibold text-slate-400 w-[90px] text-xs">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-slate-100">
                         {filteredAndSortedHistory.map((item, i) => {
-                            let categoryName = 'Uncategorized';
-                            let categoryColor = '#9ca3af';
+                            let categoryName = 'Sem categoria';
+                            let categoryColor = '#94a3b8';
 
                             if (item.categoryId) {
                                 const cat = (categories || []).find(c => c.id === item.categoryId);
@@ -264,68 +267,87 @@ export function CalendarMonthSummary({ monthlyFinancials, categories, onEdit, on
                             }
 
                             return (
-                                <tr key={i} className="group hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-3 px-6 text-gray-500 font-mono text-xs">
+                                <tr 
+                                    key={i} 
+                                    onClick={() => onEdit(item)}
+                                    className="group hover:bg-slate-50/80 transition-colors cursor-pointer"
+                                >
+                                    <td className="py-3.5 px-6 text-slate-500 font-mono text-xs">
                                         {isValid(new Date(item.date)) ? format(new Date(item.date), 'dd/MM') : 'Invalid'}
                                     </td>
-                                    <td className="py-3 font-medium text-gray-900">
+                                    <td className="py-3.5 px-4 font-semibold text-slate-900 text-xs">
                                         <div className="flex items-center gap-2">
                                             {(item.isRecurring || item.recurringTransactionId) && (
-                                                <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] rounded font-semibold uppercase tracking-wider">
-                                                    Recurring
+                                                <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] rounded font-bold uppercase tracking-wider border border-indigo-100/60">
+                                                    Recorrente
                                                 </span>
                                             )}
                                             {item.title || item.name}
                                         </div>
                                     </td>
-                                    <td className="py-3 text-center">
-                                        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100/50">
+                                    <td className="py-3.5 px-4 text-center">
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100/70 border border-slate-200/60">
                                             <div
                                                 className="w-2 h-2 rounded-full"
                                                 style={{ backgroundColor: categoryColor }}
                                             />
-                                            <span className="text-xs text-gray-600">{categoryName}</span>
+                                            <span className="text-xs font-medium text-slate-700">{categoryName}</span>
                                         </div>
                                     </td>
-                                    <td className="py-3 text-center">
+                                    <td className="py-3.5 px-4 text-center">
                                         <span className={cn(
-                                            "text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider",
-                                            item.type === 'INCOME' ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                                            "text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider",
+                                            item.type === 'INCOME' ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60" : "bg-rose-50 text-rose-700 border border-rose-200/60"
                                         )}>
-                                            {item.type}
+                                            {item.type === 'INCOME' ? 'Receita' : 'Despesa'}
                                         </span>
                                     </td>
-                                    <td className={cn("py-3 text-right font-mono font-medium", item.type === 'INCOME' ? "text-emerald-600" : "text-red-600")}>
+                                    <td className={cn("py-3.5 px-5 text-right font-mono font-extrabold text-xs whitespace-nowrap", item.type === 'INCOME' ? "text-emerald-600" : "text-slate-900")}>
                                         {item.type === 'INCOME' ? '+' : '-'} {Math.abs(item.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                     </td>
-                                    <td className="py-3 text-center">
+                                    <td className="py-3.5 px-5 text-center whitespace-nowrap">
                                         <span className={cn(
-                                            "text-[10px] font-bold uppercase",
-                                            (item.status === 'CONFIRMED' || item.status === 'PAID') ? "text-emerald-500" : "text-amber-500"
+                                            "text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider inline-block",
+                                            (item.status === 'CONFIRMED' || item.status === 'PAID') 
+                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60" 
+                                                : "bg-amber-50 text-amber-700 border border-amber-200/60"
                                         )}>
-                                            {item.status === 'PAID' ? 'CONFIRMED' : (item.status || 'CONFIRMED')}
+                                            {item.status === 'PAID' ? 'CONFIRMADO' : (item.status === 'PROJECTED' ? 'PROJETADO' : 'CONFIRMADO')}
                                         </span>
                                     </td>
-                                    <td className="py-3 text-center">
-                                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <td className="py-3.5 px-4 text-center" onClick={e => e.stopPropagation()}>
+                                        <div className="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {item.status === 'PROJECTED' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onEdit(item);
+                                                    }}
+                                                    className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                                                    title="Confirmar lançamento"
+                                                >
+                                                    <CheckCircle size={15} />
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={() => onEdit(item)}
-                                                className={cn(
-                                                    "p-1 rounded-md transition-colors",
-                                                    item.status === 'PROJECTED'
-                                                        ? "text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
-                                                        : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                                )}
-                                                title={item.status === 'PROJECTED' ? "Confirm" : "Edit"}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onEdit(item);
+                                                }}
+                                                className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                                title="Editar detalhes"
                                             >
-                                                {item.status === 'PROJECTED' ? <CheckCircle size={14} /> : <Edit2 size={14} />}
+                                                <Edit2 size={15} />
                                             </button>
                                             <button
-                                                onClick={() => onDelete(item)}
-                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                                title="Delete"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDelete(item);
+                                                }}
+                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                title="Excluir"
                                             >
-                                                <Trash2 size={14} />
+                                                <Trash2 size={15} />
                                             </button>
                                         </div>
                                     </td>

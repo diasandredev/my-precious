@@ -9,9 +9,9 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
     const totalValue = allocationData.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <div className="space-y-0">
+        <div className="space-y-4 mb-4">
             {/* Assets Allocation Card */}
-            <div className="min-h-[500px]">
+            <div>
                 <DashboardAssetsCard
                     allocationData={allocationData}
                     totalValue={totalValue}
@@ -21,46 +21,52 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
             </div>
 
             {/* Stacked Area/Bar Chart - Evolution */}
-            <Card className="p-6 bg-white min-h-[500px] rounded-none shadow-none">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Asset Evolution</h3>
-                <div className="h-[420px]">
+            <Card className="p-6 bg-white min-h-[480px] rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">Evolução Patrimonial</h3>
+                        <p className="text-xs text-slate-400">Histórico de snapshots e distribuição por conta</p>
+                    </div>
+                </div>
+                <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={evolutionData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis
                                 dataKey="name"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                tick={{ fill: '#94a3b8', fontSize: 12 }}
                                 dy={10}
                             />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                                tick={{ fill: '#94a3b8', fontSize: 12 }}
                                 tickFormatter={(value) => `R$${value / 1000}k`}
                             />
                             <Tooltip
-                                cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                                cursor={{ fill: 'rgba(0,0,0,0.02)' }}
                                 content={({ active, payload, label }) => {
                                     if (active && payload && payload.length) {
-                                        // Sort by value descending
                                         const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
 
                                         return (
-                                            <div className="bg-white p-3 shadow-xl rounded-lg border border-gray-100 z-50">
-                                                <p className="text-xs text-gray-500 mb-2 font-bold uppercase">{payload[0]?.payload?.tooltipLabel || label}</p>
-                                                {sortedPayload.map((p, i) => (
-                                                    <div key={i} className="flex justify-between gap-4 text-sm mb-1">
-                                                        <span className="font-medium" style={{ color: p.color }}>{p.name}:</span>
-                                                        <span className="font-mono text-gray-600">
-                                                            {formatCurrency(p.value)}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between gap-4">
-                                                    <span className="font-bold text-gray-900">Total:</span>
-                                                    <span className="font-bold font-mono text-gray-900">
+                                            <div className="bg-white/95 backdrop-blur-md p-3.5 shadow-xl rounded-xl border border-slate-200/80 z-50">
+                                                <p className="text-xs text-slate-500 mb-2 font-bold uppercase">{payload[0]?.payload?.tooltipLabel || label}</p>
+                                                <div className="space-y-1">
+                                                    {sortedPayload.map((p, i) => (
+                                                        <div key={i} className="flex justify-between gap-4 text-xs">
+                                                            <span className="font-medium" style={{ color: p.color }}>{p.name}:</span>
+                                                            <span className="font-mono font-semibold text-slate-700">
+                                                                {formatCurrency(p.value)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between gap-4 text-xs font-bold text-slate-900">
+                                                    <span>Total:</span>
+                                                    <span className="font-mono">
                                                         {formatCurrency(payload.reduce((sum, p) => sum + p.value, 0))}
                                                     </span>
                                                 </div>
@@ -76,10 +82,10 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
                                         {payload.map((entry, index) => (
                                             <div key={`item-${index}`} className="flex items-center gap-1.5">
                                                 <div
-                                                    className="w-2 h-2 rounded-full"
+                                                    className="w-2.5 h-2.5 rounded-full shadow-xs"
                                                     style={{ backgroundColor: entry.color }}
                                                 />
-                                                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                                                     {entry.value}
                                                 </span>
                                             </div>
@@ -94,6 +100,7 @@ export function DashboardAssetCharts({ evolutionData, allocationData, sortedAcco
                                     name={`${acc.name} (${acc.currency || 'BRL'})`}
                                     stackId="a"
                                     fill={getAccountColor(acc, index)}
+                                    radius={index === sortedAccounts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
                                 />
                             ))}
                         </BarChart>

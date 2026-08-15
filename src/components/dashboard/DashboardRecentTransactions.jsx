@@ -12,16 +12,21 @@ const parseLocalDate = (dateStr) => {
 
 export function DashboardRecentTransactions({ transactions, categories, formatCurrency, className }) {
     return (
-        <Card className={cn("pl-5 pb-0 pt-0 pr-0 bg-white space-y-3 overflow-hidden flex flex-col rounded-none shadow-none", className)}>
-            <div className="flex items-center justify-between shrink-0 mt-6 mb-4 pr-6">
-                <h3 className="text-lg font-bold text-gray-900">Transactions</h3>
-                <p className="text-xs text-gray-400">Recent</p>
+        <div className={cn("flex flex-col h-full bg-white/95 overflow-hidden", className)}>
+            <div className="pt-6 px-6 pb-4 border-b border-slate-100/80 flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-xs">
+                <div>
+                    <h3 className="text-base font-bold text-slate-900">Transações Recentes</h3>
+                    <p className="text-xs text-slate-400">Fluxo recente & projetado</p>
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">
+                    Recentes
+                </span>
             </div>
 
-            <div className="space-y-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+            <div className="space-y-4 overflow-y-auto flex-1 px-6 py-4 custom-scrollbar">
                 <TransactionList transactions={transactions} categories={categories} formatCurrency={formatCurrency} />
             </div>
-        </Card>
+        </div>
     );
 }
 

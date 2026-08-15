@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useData } from '../../contexts/DataContext';
 import { Card, Button, Label, Input, Modal, IconPicker } from '../ui';
-import { Save, Plus, Trash2, Edit2, Palette } from 'lucide-react';
+import { Save, Plus, Trash2, Edit2 } from 'lucide-react';
 import { getIcon } from '../../lib/icons';
-import { cn } from '../../lib/utils';
 import { PageHeader } from '../layout/PageHeader';
 
 export function SettingsTab() {
@@ -23,7 +22,7 @@ export function SettingsTab() {
 
     const handleSaveSettings = () => {
         updateSettings({ mainCurrency: currency });
-        alert('Settings saved!');
+        alert('Configurações salvas!');
     };
 
     const handleEditCategory = (category) => {
@@ -41,7 +40,7 @@ export function SettingsTab() {
         setEditingCategory(null);
         setCategoryForm({
             name: '',
-            color: '#3b82f6', // Default Blue
+            color: '#3b82f6',
             type: 'EXPENSE',
             icon: 'Tag'
         });
@@ -59,45 +58,48 @@ export function SettingsTab() {
     };
 
     const handleDeleteCategory = (id) => {
-        if (window.confirm('Are you sure you want to delete this category? Items using this category will lose their association.')) {
+        if (window.confirm('Tem certeza que deseja excluir esta categoria?')) {
             deleteCategory(id);
         }
     };
 
     return (
-        <div className="space-y-8 max-w-4xl mx-auto pb-8">
+        <div className="space-y-6 max-w-4xl mx-auto pb-12">
             <Helmet>
                 <title>Settings - Precious</title>
                 <meta name="description" content="Manage your application preferences, currencies, and transaction categories." />
                 <link rel="canonical" href="https://my-precious-app.com/settings" />
             </Helmet>
             
-            <PageHeader title="Settings" />
+            <PageHeader 
+                title="Configurações" 
+                description="Personalize moeda principal, preferências e categorias de transações."
+            />
 
             {/* General Preferences */}
-            <SettingsSection title="General Preferences" description="Manage your global application settings.">
+            <SettingsSection title="Preferências Gerais" description="Defina a moeda base para consolidação de patrimônio.">
                 <div className="space-y-4 max-w-md">
                     <div>
-                        <Label className="mb-2 block">Main Currency</Label>
+                        <Label className="mb-2 block text-xs font-bold text-slate-500 uppercase tracking-wider">Moeda Principal</Label>
                         <select
                             value={currency}
                             onChange={(e) => setCurrency(e.target.value)}
-                            className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
                         >
-                            <option value="BRL">BRL (R$)</option>
-                            <option value="USD">USD ($)</option>
-                            <option value="EUR">EUR (€)</option>
-                            <option value="GBP">GBP (£)</option>
+                            <option value="BRL">BRL (R$) - Real Brasileiro</option>
+                            <option value="USD">USD ($) - Dólar Americano</option>
+                            <option value="EUR">EUR (€) - Euro</option>
+                            <option value="GBP">GBP (£) - Libra Esterlina</option>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Used for dashboard aggregations.
+                        <p className="text-xs text-slate-400 mt-1.5">
+                            Utilizada para converter todos os saldos e relatórios consolidados.
                         </p>
                     </div>
 
                     <div className="pt-2">
-                        <Button onClick={handleSaveSettings} className="gap-2">
-                            <Save size={16} />
-                            Save Preferences
+                        <Button onClick={handleSaveSettings} className="gap-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-semibold shadow-sm">
+                            <Save size={15} />
+                            Salvar Preferências
                         </Button>
                     </div>
                 </div>
@@ -105,31 +107,31 @@ export function SettingsTab() {
 
             {/* Categories Management */}
             <SettingsSection
-                title="Categories"
-                description="Manage income and expense categories. Assign colors to visualize them in charts."
+                title="Categorias"
+                description="Personalize categorias de receitas e despesas com cores e ícones para gráficos."
                 action={
-                    <Button onClick={handleAddCategory} size="sm" variant="outline" className="gap-2 border-primary/20 text-primary hover:bg-primary/5">
-                        <Plus size={16} />
-                        Add Category
+                    <Button onClick={handleAddCategory} size="sm" className="gap-1.5 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-semibold shadow-xs">
+                        <Plus size={15} />
+                        Nova Categoria
                     </Button>
                 }
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {data.categories?.map(cat => (
-                        <div key={cat.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow group">
+                        <div key={cat.id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200/70 bg-white shadow-xs hover:shadow-md transition-all group">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-inner"
-                                    style={{ backgroundColor: `${cat.color}20` }}
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xs"
+                                    style={{ backgroundColor: `${cat.color}15` }}
                                 >
                                     {(() => {
                                         const Icon = getIcon(cat.icon);
-                                        return <Icon size={20} style={{ color: cat.color }} />;
+                                        return <Icon size={18} style={{ color: cat.color }} />;
                                     })()}
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-gray-900">{cat.name}</h4>
-                                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                                    <h4 className="text-xs font-bold text-slate-900">{cat.name}</h4>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                                         {cat.type}
                                     </span>
                                 </div>
@@ -138,26 +140,26 @@ export function SettingsTab() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-gray-400 hover:text-primary"
+                                    className="h-7 w-7 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100"
                                     onClick={() => handleEditCategory(cat)}
                                 >
-                                    <Edit2 size={14} />
+                                    <Edit2 size={13} />
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-gray-400 hover:text-red-500"
+                                    className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                                     onClick={() => handleDeleteCategory(cat.id)}
                                 >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={13} />
                                 </Button>
                             </div>
                         </div>
                     ))}
 
                     {(!data.categories || data.categories.length === 0) && (
-                        <p className="text-sm text-gray-400 col-span-2 text-center py-8">
-                            No categories found. Create one to get started!
+                        <p className="text-xs text-slate-400 col-span-2 text-center py-8">
+                            Nenhuma categoria cadastrada. Crie uma para começar!
                         </p>
                     )}
                 </div>
@@ -167,69 +169,63 @@ export function SettingsTab() {
             <Modal
                 isOpen={isCategoryModalOpen}
                 onClose={() => setIsCategoryModalOpen(false)}
-                title={editingCategory ? "Edit Category" : "New Category"}
+                title={editingCategory ? "Editar Categoria" : "Nova Categoria"}
             >
                 <form onSubmit={handleCategorySubmit} className="space-y-4">
                     <div>
-                        <Label>Category Name</Label>
+                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Nome da Categoria</Label>
                         <Input
                             value={categoryForm.name}
                             onChange={e => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                            placeholder="e.g. Groceries"
+                            placeholder="ex: Mercado, Moradia..."
+                            className="rounded-xl border-slate-200 text-xs"
                             required
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label>Type</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Tipo</Label>
                             <select
                                 value={categoryForm.type}
                                 onChange={e => setCategoryForm({ ...categoryForm, type: e.target.value })}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
                             >
-                                <option value="EXPENSE">Expense</option>
-                                <option value="INCOME">Income</option>
-                                <option value="BOTH">Both</option>
+                                <option value="EXPENSE">Despesa</option>
+                                <option value="INCOME">Receita</option>
+                                <option value="BOTH">Ambos</option>
                             </select>
                         </div>
                         <div>
-                            <Label>Color</Label>
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cor</Label>
                             <div className="flex items-center gap-2 h-10">
                                 <input
                                     type="color"
                                     value={categoryForm.color}
                                     onChange={e => setCategoryForm({ ...categoryForm, color: e.target.value })}
-                                    className="h-10 w-10 rounded border border-gray-200 cursor-pointer p-0.5 bg-white"
+                                    className="h-10 w-12 p-0.5 rounded-xl border border-slate-200 cursor-pointer bg-white"
                                 />
-                                <span className="text-sm text-gray-500 font-mono uppercase">{categoryForm.color}</span>
+                                <span className="text-xs font-mono text-slate-500 uppercase font-semibold">{categoryForm.color}</span>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <Label>Icon</Label>
-                        <div className="border rounded-md p-2 mt-2">
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-sm text-gray-500">Selected:</span>
-                                {(() => {
-                                    const SelectedIcon = getIcon(categoryForm.icon);
-                                    return <SelectedIcon className="text-primary" />;
-                                })()}
-                            </div>
+                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Ícone</Label>
+                        <div className="p-3 border border-slate-200 rounded-xl bg-slate-50/50">
                             <IconPicker
-                                selectedIcon={categoryForm.icon}
-                                onSelect={(icon) => setCategoryForm({ ...categoryForm, icon })}
+                                value={categoryForm.icon}
+                                onChange={icon => setCategoryForm({ ...categoryForm, icon })}
                             />
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button type="button" variant="ghost" onClick={() => setIsCategoryModalOpen(false)}>
-                            Cancel
+                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                        <Button type="button" variant="ghost" onClick={() => setIsCategoryModalOpen(false)} className="rounded-xl text-xs">
+                            Cancelar
                         </Button>
-                        <Button type="submit">
-                            {editingCategory ? 'Save Changes' : 'Create Category'}
+                        <Button type="submit" className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-semibold shadow-sm">
+                            {editingCategory ? "Salvar Alterações" : "Criar Categoria"}
                         </Button>
                     </div>
                 </form>
@@ -240,13 +236,15 @@ export function SettingsTab() {
 
 function SettingsSection({ title, description, children, action }) {
     return (
-        <Card className="p-6 bg-white shadow-sm border border-gray-100">
-            <div className="flex justify-between items-start mb-6">
+        <Card className="p-6 bg-white border-slate-200/80 shadow-xs hover:shadow-md transition-all rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{description}</p>
+                    <h3 className="text-base font-bold text-slate-900">{title}</h3>
+                    {description && (
+                        <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+                    )}
                 </div>
-                {action}
+                {action && <div>{action}</div>}
             </div>
             {children}
         </Card>

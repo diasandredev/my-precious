@@ -104,7 +104,7 @@ export function useCalendarData() {
         //   Let's treat Realized Children as "Confirming" mode too (Read Only fields), but maybe button says "Update" or "Save".
         //   Let's use `isConfirming` to trigger the Read-Only state in the modal.
 
-        setIsConfirming(item.status === 'PROJECTED' || isChild);
+        setIsConfirming(false);
 
         // item.date comes from financialPeriodUtils which returns Date objects.
         // We must format it to yyyy-MM-dd for HTML date inputs.

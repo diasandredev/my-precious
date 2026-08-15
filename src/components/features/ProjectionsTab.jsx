@@ -169,22 +169,22 @@ export function ProjectionsTab() {
                 <link rel="canonical" href="https://my-precious-app.com/projections" />
             </Helmet>
             <PageHeader
-                title="Financial Projections"
-                description="Forecast your wealth based on recurring patterns & average spending"
+                title="Projeções Financeiras"
+                description="Simule o crescimento patrimonial com base em receitas recorrentes, despesas médias e juros compostos."
             >
-                <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-2 px-2">
-                        <Label htmlFor="yield" className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0">Monthly Yield (%)</Label>
+                <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="flex items-center gap-2.5 px-2">
+                        <Label htmlFor="yield" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0">Rendimento Mensal</Label>
                         <div className="relative w-24">
                             <Input
                                 id="yield"
                                 type="number"
-                                step="0.01"
+                                step="0.05"
                                 value={yieldRate}
                                 onChange={(e) => setYieldRate(parseFloat(e.target.value) || 0)}
-                                className="h-8 text-right pr-6 font-bold text-emerald-600 border-gray-200"
+                                className="h-9 text-right pr-6 font-extrabold font-mono text-emerald-600 border-slate-200 rounded-xl"
                             />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">%</span>
                         </div>
                     </div>
                 </div>
@@ -192,41 +192,41 @@ export function ProjectionsTab() {
 
             {/* Summary Cards */}
             {projectionData.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Projected Wealth (1Y)</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Patrimônio em 1 Ano</p>
+                        <p className="text-2xl font-extrabold font-mono text-slate-900 tracking-tight">
                             {formatCurrency(projectionData[projectionData.length - 1].total)}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Current: {formatCurrency(projectionData[0].total)}
+                        <p className="text-xs text-slate-400 mt-1 font-mono">
+                            Atual: {formatCurrency(projectionData[0].total)}
                         </p>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">Passive Income (Yield)</p>
-                        <p className="text-2xl font-bold text-emerald-600">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+                        <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Renda Passiva (Juros)</p>
+                        <p className="text-2xl font-extrabold font-mono text-emerald-600 tracking-tight">
                             +{formatCurrency(projectionData[projectionData.length - 1].totalYield)}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Estimated interest earned
+                        <p className="text-xs text-slate-400 mt-1">
+                            Total de juros acumulados
                         </p>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Active Savings</p>
-                        <p className="text-2xl font-bold text-blue-600">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+                        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-1">Poupança Ativa</p>
+                        <p className="text-2xl font-extrabold font-mono text-blue-600 tracking-tight">
                             {formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings)}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Avg {formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings / 12)} / month
+                        <p className="text-xs text-slate-400 mt-1 font-mono">
+                            Média {formatCurrency(projectionData[projectionData.length - 1].accumulatedSavings / 12)} / mês
                         </p>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1">Avg Variable exp.</p>
-                        <p className="text-2xl font-bold text-amber-600">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+                        <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-1">Média Gastos Variáveis</p>
+                        <p className="text-2xl font-extrabold font-mono text-amber-600 tracking-tight">
                             {formatCurrency(projectionData[0].avgVariableExpenses)}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Based on last 6 months
+                        <p className="text-xs text-slate-400 mt-1">
+                            Base: últimos 6 meses
                         </p>
                     </div>
                 </div>
@@ -237,30 +237,30 @@ export function ProjectionsTab() {
 
             {/* Methodology / Explanation */}
             {projectionData.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
-                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">How is this calculated?</h4>
-                    <div className="space-y-4 text-sm text-gray-600">
-                        <div className="flex items-start gap-4">
-                            <span className="bg-white px-2 py-1 rounded border border-gray-200 font-mono text-xs font-bold text-gray-700 whitespace-nowrap min-w-[120px] text-center">Starting Point</span>
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Como esta projeção é calculada?</h4>
+                    <div className="space-y-3 text-xs text-slate-600">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="bg-white px-2.5 py-1 rounded-lg border border-slate-200 font-mono text-xs font-bold text-slate-800 text-center shrink-0">Ponto de Partida</span>
                             <span>
-                                We start with your latest snapshot balance of <strong className="text-gray-900">{formatCurrency(projectionData[0].total)}</strong>.
+                                Saldo total consolidado do último snapshot: <strong className="text-slate-900 font-mono">{formatCurrency(projectionData[0].total)}</strong>.
                             </span>
                         </div>
-                        <div className="flex items-start gap-4">
-                            <span className="bg-blue-50 px-2 py-1 rounded border border-blue-100 font-mono text-xs font-bold text-blue-700 whitespace-nowrap min-w-[120px] text-center">Active Savings</span>
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-3 rounded-xl bg-blue-50/50 border border-blue-100/60 text-blue-900">
+                            <span className="bg-white px-2.5 py-1 rounded-lg border border-blue-200 font-mono text-xs font-bold text-blue-700 text-center shrink-0">Poupança Ativa</span>
                             <div>
-                                <p className="mb-2">Your estimated monthly savings involves:</p>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    <li>(+) Recurring Income (Avg: {formatCurrency(projectionData[1]?.monthlyIncome || 0)})</li>
-                                    <li>(-) Recurring Expenses (Avg: {formatCurrency(projectionData[1]?.monthlyRecurringExpenses || 0)})</li>
-                                    <li>(-) <strong>Avg Variable Expenses ({formatCurrency(projectionData[0].avgVariableExpenses)})</strong> <span className="text-xs text-amber-600 bg-amber-50 px-1 rounded">(Calculated from last 6 months non-recurring spend)</span></li>
+                                <p className="mb-1">Estimativa de fluxo líquido mensal:</p>
+                                <ul className="list-disc pl-4 space-y-0.5 text-blue-800">
+                                    <li>(+) Receitas Recorrentes (Média: {formatCurrency(projectionData[1]?.monthlyIncome || 0)})</li>
+                                    <li>(-) Despesas Recorrentes (Média: {formatCurrency(projectionData[1]?.monthlyRecurringExpenses || 0)})</li>
+                                    <li>(-) Gastos Variáveis ({formatCurrency(projectionData[0].avgVariableExpenses)})</li>
                                 </ul>
                             </div>
                         </div>
-                        <div className="flex items-start gap-4">
-                            <span className="bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-mono text-xs font-bold text-emerald-700 whitespace-nowrap min-w-[120px] text-center">Compound Yield</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100/60 text-emerald-900">
+                            <span className="bg-white px-2.5 py-1 rounded-lg border border-emerald-200 font-mono text-xs font-bold text-emerald-700 text-center shrink-0">Juros Compostos</span>
                             <span>
-                                A monthly yield of <strong className="text-emerald-700">{yieldRate}%</strong> is applied to your <strong>entire balance</strong> (Principal + Savings) at the end of each month.
+                                Rendimento mensal estimado de <strong className="text-emerald-700 font-bold">{yieldRate}% a.m.</strong> aplicado sobre todo o saldo acumulado.
                             </span>
                         </div>
                     </div>

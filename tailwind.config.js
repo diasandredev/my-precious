@@ -81,7 +81,14 @@ export default {
                 'accordion-up': 'accordion-up 0.2s ease-out',
                 'spin-slow': 'spin-slow 20s linear infinite'
             },
+            boxShadow: {
+                'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.05)',
+                'glass-sm': '0 4px 16px 0 rgba(0, 0, 0, 0.03)',
+                'card-hover': '0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03)',
+            },
             fontFamily: {
+                sans: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
                 logo: ['"Playwrite NO"', '"Playwrite Norge"', 'cursive']
             }
         }

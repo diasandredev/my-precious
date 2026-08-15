@@ -58,26 +58,26 @@ export function DashboardFinancialOverview({ chartData, pieData, breakdownFilter
     }, [filteredData]);
 
     return (
-        <Card className="lg:col-span-2 p-6 bg-white min-h-[500px] rounded-none shadow-none">
-            <div className="flex justify-between items-start mb-8">
+        <Card className="lg:col-span-2 p-6 bg-white min-h-[500px] rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                        Financial Overview
+                    <h3 className="text-lg font-bold text-slate-900">
+                        Visão Geral Financeira
                     </h3>
-                    <p className="text-sm text-gray-400">Income vs Expenses</p>
+                    <p className="text-xs text-slate-400">Comparativo de Receitas vs Despesas por Categoria</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60">
                     {/* View Selectors */}
                     {['3M', '6M', '1Y', 'DEFAULT'].map(mode => (
                         <button
                             key={mode}
                             onClick={() => setViewMode(mode)}
-                            className={`px-3 py-1 text-xs font-medium uppercase tracking-wider transition-colors ${viewMode === mode
-                                ? 'text-white bg-gray-900'
-                                : 'text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
+                            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${viewMode === mode
+                                ? 'text-slate-900 bg-white shadow-xs'
+                                : 'text-slate-500 hover:text-slate-800'
                                 }`}
                         >
-                            {mode === 'DEFAULT' ? 'Past & Future' : mode === '1Y' ? 'Year' : mode === '3M' ? '3 Months' : '6 Months'}
+                            {mode === 'DEFAULT' ? 'Geral' : mode === '1Y' ? '1 Ano' : mode === '3M' ? '3 Meses' : '6 Meses'}
                         </button>
                     ))}
                 </div>

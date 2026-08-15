@@ -66,40 +66,42 @@ export function DashboardExpensesBreakdown({ pieData, breakdownFilter, setBreakd
     }, [breakdownFilter]);
 
     return (
-        <Card className="p-5 bg-white h-[400px] flex flex-col rounded-none shadow-none">
-            <div className="flex justify-between items-center mb-2 shrink-0">
-                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Expenses Breakdown</h4>
+        <Card className="p-6 bg-white min-h-[420px] flex flex-col rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+            <div className="flex justify-between items-center mb-4 shrink-0">
+                <div>
+                    <h4 className="text-base font-bold text-slate-900">Distribuição de Gastos</h4>
+                    <p className="text-xs text-slate-400">Por categoria</p>
+                </div>
 
                 {/* Custom Selector */}
                 <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="flex items-center gap-2 border rounded-md px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 capitalize min-w-[160px] justify-between"
+                        className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold bg-slate-50 text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-900 capitalize min-w-[140px] justify-between transition-all"
                     >
-                        <span>{selectedLabel}</span>
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <span className="truncate">{selectedLabel}</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     </button>
 
                     {isDropdownOpen && (
-                        <div className="absolute right-0 top-full mt-1 w-[200px] max-h-[300px] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-50">
-                            {/* Option for ALL - user didn't ask to remove it, but "default is current month" */}
+                        <div className="absolute right-0 top-full mt-1.5 w-[200px] max-h-[300px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1 custom-scrollbar">
                             <div
                                 onClick={() => {
                                     setBreakdownFilter('ALL');
                                     setIsDropdownOpen(false);
                                 }}
-                                className={`px-3 py-2 text-sm cursor-pointer capitalize hover:bg-gray-50 transition-colors border-b border-gray-100 ${breakdownFilter === 'ALL' ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'
+                                className={`px-3 py-2 text-xs rounded-lg cursor-pointer capitalize hover:bg-slate-50 transition-colors border-b border-slate-100 ${breakdownFilter === 'ALL' ? 'bg-slate-900 text-white font-semibold' : 'text-slate-700'
                                     }`}
                             >
-                                All Months
+                                Todos os Meses
                             </div>
 
                             {monthOptions.map((group) => (
-                                <div key={group.year}>
-                                    <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500 border-b border-gray-100">
+                                <div key={group.year} className="my-1">
+                                    <div className="sticky top-0 bg-slate-50 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider rounded-md">
                                         {group.year}
                                     </div>
-                                    <div>
+                                    <div className="space-y-0.5 mt-0.5">
                                         {group.months.map((opt) => (
                                             <div
                                                 key={opt.value}
@@ -107,10 +109,10 @@ export function DashboardExpensesBreakdown({ pieData, breakdownFilter, setBreakd
                                                     setBreakdownFilter(opt.value);
                                                     setIsDropdownOpen(false);
                                                 }}
-                                                className={`px-3 py-2 text-sm cursor-pointer capitalize hover:bg-gray-50 transition-colors ${breakdownFilter === opt.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'
+                                                className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer capitalize hover:bg-slate-100 transition-colors ${breakdownFilter === opt.value ? 'bg-slate-900 text-white font-semibold' : 'text-slate-700'
                                                     }`}
                                             >
-                                                {opt.label} {opt.isCurrent && <span className="text-xs text-indigo-500 ml-1">(Current)</span>}
+                                                {opt.label} {opt.isCurrent && <span className="text-[10px] text-emerald-500 font-bold ml-1">• Atual</span>}
                                             </div>
                                         ))}
                                     </div>
@@ -127,19 +129,20 @@ export function DashboardExpensesBreakdown({ pieData, breakdownFilter, setBreakd
                             data={pieData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
+                            innerRadius={55}
+                            outerRadius={85}
+                            paddingAngle={4}
                             dataKey="value"
                         >
                             {pieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="#fff" strokeWidth={2} />
                             ))}
                         </Pie>
                         <Tooltip
                             formatter={(value) => formatCurrency(value)}
+                            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                         />
-                        <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: '12px' }} />
+                        <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: '11px', fontWeight: '500' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </div>

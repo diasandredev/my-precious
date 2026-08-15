@@ -385,25 +385,25 @@ export function CashFlowSankey({ transactions, recurringTransactions = [], categ
     const selectedLabel = format(selectedDate, "MMMM ' - ' yyyy", { locale: ptBR });
 
     return (
-        <Card className="col-span-1 lg:col-span-3 p-6 bg-white min-h-[500px] rounded-none shadow-none">
+        <Card className="col-span-1 lg:col-span-3 p-6 bg-white min-h-[500px] rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all mb-4">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">Cash Flow</h3>
-                    <p className="text-sm text-gray-400">Incomes vs Expenses</p>
+                    <h3 className="text-lg font-bold text-slate-900">Fluxo de Caixa (Sankey)</h3>
+                    <p className="text-xs text-slate-400">Visualização do fluxo de receitas para despesas</p>
                 </div>
 
                 {/* Custom Month Selector */}
                 <div className="relative" ref={dropdownRef}>
                     <button
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="flex items-center gap-2 border rounded-md px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 capitalize min-w-[160px] justify-between"
+                        className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold bg-slate-50 text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-900 capitalize min-w-[140px] justify-between transition-all"
                     >
                         <span>{selectedLabel}</span>
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     </button>
 
                     {isDropdownOpen && (
-                        <div className="absolute right-0 top-full mt-1 w-[200px] max-h-[300px] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+                        <div className="absolute right-0 top-full mt-1.5 w-[200px] max-h-[300px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-1 custom-scrollbar">
                             {monthOptions.map((group) => (
                                 <div key={group.year}>
                                     <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500 border-b border-gray-100">
